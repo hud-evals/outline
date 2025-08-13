@@ -18,6 +18,7 @@ import {
   GroupMembership,
 } from "@server/models";
 import { DocumentHelper } from "@server/models/helpers/DocumentHelper";
+import { taskQueue } from "@server/queues";
 import {
   buildShare,
   buildCollection,
@@ -30,6 +31,21 @@ import {
   buildAdmin,
 } from "@server/test/factories";
 import { getTestServer } from "@server/test/support";
+
+jest.mock("@server/queues", () => ({
+  globalEventQueue: {
+    add: jest.fn(),
+  },
+  processorEventQueue: {
+    add: jest.fn(),
+  },
+  websocketQueue: {
+    add: jest.fn(),
+  },
+  taskQueue: {
+    add: jest.fn(),
+  },
+}));
 
 const server = getTestServer();
 
@@ -4622,6 +4638,10 @@ describe("#documents.memberships", () => {
 });
 
 describe("#documents.empty_trash", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("should require authentication", async () => {
     const res = await server.post("/api/documents.empty_trash");
     const body = await res.json();
@@ -4650,7 +4670,7 @@ describe("#documents.empty_trash", () => {
     expect(res.status).toEqual(403);
     expect(body).toMatchSnapshot();
   });
-  it("should permanently delete documents", async () => {
+  it("should schedule EmptyTrashTask instead of immediately deleting documents", async () => {
     const user = await buildAdmin();
     const document = await buildDocument({
       userId: user.id,
@@ -4668,6 +4688,57 @@ describe("#documents.empty_trash", () => {
     expect(res.status).toEqual(200);
     expect(body.success).toEqual(true);
 
+    // Verify taskQueue.add was called with EmptyTrashTask and document ID
+    expect(taskQueue.add).toHaveBeenCalledWith(
+      {
+        name: "EmptyTrashTask",
+        props: {
+          documentIds: [document.id],
+        },
+      },
+      expect.any(Object)
+    );
+
+    const deletedDoc = await Document.findByPk(document.id, {
+      userId: user.id,
+      paranoid: false,
+    });
+    expect(deletedDoc).not.toBeNull();
+    expect(deletedDoc?.deletedAt).not.toBeNull();
+  });
+  it("should permanently delete documents when task is executed", async () => {
+    const user = await buildAdmin();
+    const document = await buildDocument({
+      userId: user.id,
+      teamId: user.teamId,
+    });
+    await document.delete(user);
+
+    const res = await server.post("/api/documents.empty_trash", {
+      body: {
+        token: user.getJwtToken(),
+      },
+    });
+
+    const body = await res.json();
+    expect(res.status).toEqual(200);
+    expect(body.success).toEqual(true);
+
+    // Execute the scheduled task with the document ID
+    // Get the task call from the mock to see what was scheduled
+    const taskCall = (taskQueue.add as jest.Mock).mock.calls.find(
+      (call) => call[0].name === "EmptyTrashTask"
+    );
+    expect(taskCall).toBeDefined();
+
+    // Import and execute the actual task dynamically
+    const { default: TaskClass } = jest.requireActual(
+      "@server/queues/tasks/EmptyTrashTask"
+    );
+    const task = new TaskClass();
+    await task.perform(taskCall[0].props);
+
+    // Verify the document is now permanently deleted (not just soft-deleted)
     const deletedDoc = await Document.findByPk(document.id, {
       userId: user.id,
       paranoid: false,
