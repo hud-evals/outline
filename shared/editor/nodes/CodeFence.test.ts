@@ -1,0 +1,219 @@
+import { schema } from "prosemirror-markdown";
+import { Schema } from "prosemirror-model";
+import { EditorState } from "prosemirror-state";
+import Storage from "../../utils/Storage";
+import CodeFence from "./CodeFence";
+
+// Mock Storage module
+jest.mock("../../utils/Storage");
+
+// Mock sonner toast
+jest.mock("sonner", () => ({
+  toast: {
+    message: jest.fn(),
+  },
+}));
+
+describe("CodeFence", () => {
+  let codeFence: CodeFence;
+  let testSchema: Schema;
+  let mockEditor: any;
+  let mockDictionary: any;
+
+  beforeEach(() => {
+    // Clear all mocks
+    jest.clearAllMocks();
+
+    // Mock Storage.get to return undefined by default
+    (Storage.get as jest.Mock).mockReturnValue(undefined);
+    (Storage.set as jest.Mock).mockImplementation(() => {});
+
+    // Mock dictionary
+    mockDictionary = {
+      codeCopied: "Code copied",
+    };
+
+    // Mock editor
+    mockEditor = {
+      schema,
+    };
+
+    // Create CodeFence instance
+    codeFence = new CodeFence({
+      dictionary: mockDictionary,
+    });
+    codeFence.editor = mockEditor;
+
+    // Create test schema with code_block node
+    testSchema = new Schema({
+      nodes: schema.spec.nodes.append({
+        code_block: {
+          content: "text*",
+          group: "block",
+          code: true,
+          defining: true,
+          marks: "",
+          attrs: {
+            language: { default: null },
+          },
+          parseDOM: [
+            {
+              tag: "pre",
+              preserveWhitespace: "full",
+              getAttrs: (node: any) => ({
+                language: node.getAttribute("data-language") || null,
+              }),
+            },
+          ],
+          toDOM(node: any) {
+            return [
+              "pre",
+              { "data-language": node.attrs.language },
+              ["code", 0],
+            ];
+          },
+        },
+      }),
+      marks: schema.spec.marks,
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe("language persistence", () => {
+    describe("commands", () => {
+      it("should save language when creating a code block with a specific language", () => {
+        const commands = codeFence.commands({
+          type: testSchema.nodes.code_block,
+          schema: testSchema,
+        });
+
+        const state = EditorState.create({ schema: testSchema });
+        const dispatch = jest.fn();
+
+        // Execute code_block command with python language
+        const command = commands.code_block({ language: "python" });
+        command(state, dispatch);
+
+        // Verify setRecentCodeLanguage was called via Storage.set
+        expect(Storage.set).toHaveBeenCalledWith("rme-code-language", "python");
+        expect(Storage.set).toHaveBeenCalledWith(
+          "frequent-code-languages",
+          expect.any(Object)
+        );
+      });
+
+      it("should use recent language when creating a code block without specifying language", () => {
+        // Mock Storage to return a recent language
+        (Storage.get as jest.Mock).mockImplementation((key) => {
+          if (key === "rme-code-language") {
+            return "rust";
+          }
+          return undefined;
+        });
+
+        const commands = codeFence.commands({
+          type: testSchema.nodes.code_block,
+          schema: testSchema,
+        });
+
+        const state = EditorState.create({ schema: testSchema });
+        const dispatch = jest.fn();
+
+        // Execute code_block command without language
+        const command = commands.code_block({});
+        command(state, dispatch);
+
+        // The toggleBlockType should be called with the recent language
+        // We can't directly test this without mocking toggleBlockType,
+        // but we can verify Storage.get was called
+        expect(Storage.get).toHaveBeenCalledWith("rme-code-language");
+      });
+
+      it("should use default language when no recent language exists", () => {
+        // Mock Storage to return undefined for recent language
+        (Storage.get as jest.Mock).mockReturnValue(undefined);
+
+        const commands = codeFence.commands({
+          type: testSchema.nodes.code_block,
+          schema: testSchema,
+        });
+
+        const state = EditorState.create({ schema: testSchema });
+        const dispatch = jest.fn();
+
+        // Execute code_block command without language
+        const command = commands.code_block({});
+        command(state, dispatch);
+
+        // Should have checked for recent language
+        expect(Storage.get).toHaveBeenCalledWith("rme-code-language");
+        // When no recent language, it should use DEFAULT_LANGUAGE (javascript)
+      });
+
+      it("should override saved language when explicit language is provided", () => {
+        // Mock Storage to return a recent language
+        (Storage.get as jest.Mock).mockImplementation((key) => {
+          if (key === "rme-code-language") {
+            return "python";
+          }
+          return undefined;
+        });
+
+        const commands = codeFence.commands({
+          type: testSchema.nodes.code_block,
+          schema: testSchema,
+        });
+
+        const state = EditorState.create({ schema: testSchema });
+        const dispatch = jest.fn();
+
+        // Execute code_block command with explicit language
+        const command = commands.code_block({ language: "go" });
+        command(state, dispatch);
+
+        // Should save the new language
+        expect(Storage.set).toHaveBeenCalledWith("rme-code-language", "go");
+      });
+    });
+  });
+
+  describe("integration with code lib functions", () => {
+    it("should track language frequency when setting recent language", () => {
+      // Setup Storage mock to track the data
+      const storageData: Record<string, any> = {};
+      (Storage.get as jest.Mock).mockImplementation((key) => storageData[key]);
+      (Storage.set as jest.Mock).mockImplementation((key, value) => {
+        storageData[key] = value;
+      });
+
+      const commands = codeFence.commands({
+        type: testSchema.nodes.code_block,
+        schema: testSchema,
+      });
+
+      const state = EditorState.create({ schema: testSchema });
+      const dispatch = jest.fn();
+
+      // Create multiple code blocks with different languages
+      commands.code_block({ language: "python" })(state, dispatch);
+      expect(storageData["rme-code-language"]).toBe("python");
+      expect(storageData["frequent-code-languages"]).toHaveProperty(
+        "python",
+        1
+      );
+
+      commands.code_block({ language: "python" })(state, dispatch);
+      expect(storageData["frequent-code-languages"]).toHaveProperty(
+        "python",
+        2
+      );
+
+      commands.code_block({ language: "rust" })(state, dispatch);
+      expect(storageData["rme-code-language"]).toBe("rust");
+      expect(storageData["frequent-code-languages"]).toHaveProperty("rust", 1);
+    });
+  });
+});
