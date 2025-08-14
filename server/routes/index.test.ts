@@ -57,4 +57,74 @@ describe("/s/:id", () => {
     expect(res.status).toEqual(200);
     expect(body).toContain(`<title>${document.title}</title>`);
   });
+
+  it("should not include robots meta tag when allowIndexing is true", async () => {
+    const document = await buildDocument();
+    const share = await buildShare({
+      documentId: document.id,
+      teamId: document.teamId,
+      allowIndexing: true,
+    });
+    const res = await server.get(`/s/${share.id}`);
+    const body = await res.text();
+    expect(res.status).toEqual(200);
+    expect(body).not.toContain(
+      '<meta name="robots" content="noindex, nofollow">'
+    );
+  });
+
+  it("should include robots noindex meta tag when allowIndexing is false", async () => {
+    const document = await buildDocument();
+    const share = await buildShare({
+      documentId: document.id,
+      teamId: document.teamId,
+      allowIndexing: false,
+    });
+    const res = await server.get(`/s/${share.id}`);
+    const body = await res.text();
+    expect(res.status).toEqual(200);
+    expect(body).toContain('<meta name="robots" content="noindex, nofollow">');
+  });
+
+  it("should include robots noindex meta tag for nested doc route when allowIndexing is false", async () => {
+    const document = await buildDocument();
+    const share = await buildShare({
+      documentId: document.id,
+      teamId: document.teamId,
+      allowIndexing: false,
+    });
+    const res = await server.get(`/s/${share.id}/doc/${document.urlId}`);
+    const body = await res.text();
+    expect(res.status).toEqual(200);
+    expect(body).toContain('<meta name="robots" content="noindex, nofollow">');
+  });
+
+  it("should not include robots meta tag for nested doc route when allowIndexing is true", async () => {
+    const document = await buildDocument();
+    const share = await buildShare({
+      documentId: document.id,
+      teamId: document.teamId,
+      allowIndexing: true,
+    });
+    const res = await server.get(`/s/${share.id}/doc/${document.urlId}`);
+    const body = await res.text();
+    expect(res.status).toEqual(200);
+    expect(body).not.toContain(
+      '<meta name="robots" content="noindex, nofollow">'
+    );
+  });
+
+  it("should default to allowing indexing when allowIndexing is not specified", async () => {
+    const document = await buildDocument();
+    const share = await buildShare({
+      documentId: document.id,
+      teamId: document.teamId,
+    });
+    const res = await server.get(`/s/${share.id}`);
+    const body = await res.text();
+    expect(res.status).toEqual(200);
+    expect(body).not.toContain(
+      '<meta name="robots" content="noindex, nofollow">'
+    );
+  });
 });

@@ -247,6 +247,24 @@ describe("#shares.create", () => {
     expect(body.data.includeChildDocuments).toBe(true);
     expect(body.data.urlId).toBe("test");
     expect(body.data.documentTitle).toBe(document.title);
+    expect(body.data.allowIndexing).toBe(true);
+  });
+
+  it("should default allowIndexing to true when creating a share", async () => {
+    const user = await buildUser();
+    const document = await buildDocument({
+      userId: user.id,
+      teamId: user.teamId,
+    });
+    const res = await server.post("/api/shares.create", {
+      body: {
+        token: user.getJwtToken(),
+        documentId: document.id,
+      },
+    });
+    const body = await res.json();
+    expect(res.status).toEqual(200);
+    expect(body.data.allowIndexing).toBe(true);
   });
 
   it("should fail creating a share record with read-only permissions and publishing", async () => {
@@ -877,6 +895,82 @@ describe("#shares.update", () => {
     expect(res.status).toEqual(200);
     expect(body.data.id).toBe(share.id);
     expect(body.data.published).toBe(true);
+  });
+
+  it("should allow updating allowIndexing to false", async () => {
+    const user = await buildUser();
+    const document = await buildDocument({
+      userId: user.id,
+      teamId: user.teamId,
+    });
+    const share = await buildShare({
+      documentId: document.id,
+      teamId: user.teamId,
+      userId: user.id,
+    });
+    const res = await server.post("/api/shares.update", {
+      body: {
+        token: user.getJwtToken(),
+        id: share.id,
+        allowIndexing: false,
+      },
+    });
+    const body = await res.json();
+    expect(res.status).toEqual(200);
+    expect(body.data.id).toBe(share.id);
+    expect(body.data.allowIndexing).toBe(false);
+  });
+
+  it("should allow updating allowIndexing to true", async () => {
+    const user = await buildUser();
+    const document = await buildDocument({
+      userId: user.id,
+      teamId: user.teamId,
+    });
+    const share = await buildShare({
+      documentId: document.id,
+      teamId: user.teamId,
+      userId: user.id,
+      allowIndexing: false,
+    });
+    const res = await server.post("/api/shares.update", {
+      body: {
+        token: user.getJwtToken(),
+        id: share.id,
+        allowIndexing: true,
+      },
+    });
+    const body = await res.json();
+    expect(res.status).toEqual(200);
+    expect(body.data.id).toBe(share.id);
+    expect(body.data.allowIndexing).toBe(true);
+  });
+
+  it("should allow updating allowIndexing and published together", async () => {
+    const user = await buildUser();
+    const document = await buildDocument({
+      userId: user.id,
+      teamId: user.teamId,
+    });
+    const share = await buildShare({
+      documentId: document.id,
+      teamId: user.teamId,
+      userId: user.id,
+      published: false,
+    });
+    const res = await server.post("/api/shares.update", {
+      body: {
+        token: user.getJwtToken(),
+        id: share.id,
+        published: true,
+        allowIndexing: false,
+      },
+    });
+    const body = await res.json();
+    expect(res.status).toEqual(200);
+    expect(body.data.id).toBe(share.id);
+    expect(body.data.published).toBe(true);
+    expect(body.data.allowIndexing).toBe(false);
   });
 
   it("should require authentication", async () => {
