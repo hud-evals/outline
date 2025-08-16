@@ -1,4 +1,4 @@
-import "../../../stores";
+import "../../../../stores";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { TFunction } from "i18next";
 import * as React from "react";
@@ -26,7 +26,7 @@ jest.mock("react-merge-refs", () => ({
     },
 }));
 
-import PublicAccess from "./PublicAccess";
+import PublicAccess from "../PublicAccess";
 
 jest.mock("sonner", () => ({
   toast: {
