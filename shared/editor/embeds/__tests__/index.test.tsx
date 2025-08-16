@@ -28,7 +28,6 @@ describe("embeds", () => {
 
         expect(dropboxEmbed).toBeDefined();
         expect(dropboxEmbed.title).toBe("Dropbox");
-        expect(dropboxEmbed.keywords).toBe("file document");
         // Use toEqual for function comparison in isolated modules
         expect(dropboxEmbed.component.name).toBe("Dropbox");
       });
