@@ -1,5 +1,5 @@
 import Storage from "@shared/utils/Storage";
-import codeMenuItems from "./code";
+import codeMenuItems from "../code";
 
 // Mock Storage module
 jest.mock("@shared/utils/Storage");

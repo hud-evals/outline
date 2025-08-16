@@ -1,8 +1,8 @@
 import { schema } from "prosemirror-markdown";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
-import Storage from "../../utils/Storage";
-import CodeFence from "./CodeFence";
+import Storage from "../../../utils/Storage";
+import CodeFence from "../CodeFence";
 
 // Mock Storage module
 jest.mock("../../utils/Storage");
