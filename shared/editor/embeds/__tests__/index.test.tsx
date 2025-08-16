@@ -1,5 +1,5 @@
-import env from "../../env";
-import { EmbedDescriptor } from "./index";
+import env from "../../../env";
+import { EmbedDescriptor } from "../index";
 
 describe("embeds", () => {
   describe("Dropbox embed integration", () => {
