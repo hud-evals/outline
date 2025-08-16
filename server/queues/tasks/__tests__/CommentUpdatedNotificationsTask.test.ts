@@ -9,7 +9,7 @@ import {
 } from "@server/test/factories";
 import { CommentUpdateEvent } from "@server/types";
 import { canUserAccessDocument } from "@server/utils/policies";
-import CommentUpdatedNotificationsTask from "./CommentUpdatedNotificationsTask";
+import CommentUpdatedNotificationsTask from "../CommentUpdatedNotificationsTask";
 
 // Mock external dependencies
 jest.mock("@server/models/helpers/ProsemirrorHelper");
