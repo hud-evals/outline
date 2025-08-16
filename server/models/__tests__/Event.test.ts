@@ -8,7 +8,7 @@ import {
   buildTeam,
   buildUser,
 } from "@server/test/factories";
-import Event from "./Event";
+import Event from "../Event";
 
 // Mock the globalEventQueue to test event queueing
 jest.mock("@server/queues", () => ({
