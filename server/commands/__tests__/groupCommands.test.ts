@@ -1,19 +1,29 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable import/no-unresolved */
+
 import { Group, GroupUser, Event } from "@server/models";
 import { sequelize } from "@server/storage/database";
-import { buildGroup, buildGroupUser, buildUser } from "@server/test/factories";
-// eslint-disable-next-line import/no-unresolved
+import {
+  buildGroup,
+  buildGroupUser,
+  buildUser,
+  buildAdmin,
+} from "@server/test/factories";
+import { getTestServer } from "@server/test/support";
 import groupCreator from "../groupCreator";
-// eslint-disable-next-line import/no-unresolved
 import groupDestroyer from "../groupDestroyer";
-// eslint-disable-next-line import/no-unresolved
 import groupUpdater from "../groupUpdater";
-// eslint-disable-next-line import/no-unresolved
 import groupUserCreator from "../groupUserCreator";
-// eslint-disable-next-line import/no-unresolved
 import groupUserDestroyer from "../groupUserDestroyer";
+
+const server = getTestServer();
 
 describe("Group Commands", () => {
   const ip = "127.0.0.1";
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   describe("groupCreator", () => {
     it("should create a group with correct properties", async () => {
@@ -390,6 +400,188 @@ describe("Group Commands", () => {
       expect(group.name).toEqual(newName);
       expect(group.teamId).toEqual(originalTeamId);
       expect(group.createdById).toEqual(user.id);
+    });
+  });
+
+  describe("Route Integration Tests", () => {
+    it("should use groupCreator command when creating groups via API", async () => {
+      const user = await buildAdmin();
+      const groupName = "API Test Group";
+
+      // Spy on the command and mock its return value
+      const fakeGroup = await buildGroup({
+        name: groupName,
+        teamId: user.teamId,
+      });
+      const groupCreatorSpy = jest
+        .spyOn(require("../groupCreator"), "default")
+        .mockResolvedValue(fakeGroup);
+
+      // Call the actual API route
+      const res = await server.post("/api/groups.create", {
+        body: {
+          token: user.getJwtToken(),
+          name: groupName,
+        },
+      });
+
+      expect(res.status).toEqual(200);
+      expect(groupCreatorSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: groupName,
+          actor: expect.objectContaining({ id: user.id }),
+          ip: expect.any(String),
+          transaction: expect.anything(),
+        })
+      );
+
+      groupCreatorSpy.mockRestore();
+    });
+
+    it("should use groupUpdater command when updating groups via API", async () => {
+      const user = await buildAdmin();
+      const group = await buildGroup({
+        teamId: user.teamId,
+        createdById: user.id,
+        name: "Original Name",
+      });
+      const newName = "Updated via API";
+
+      // Spy on the command and mock its return value
+      const updatedGroup = { ...group.toJSON(), name: newName };
+      const groupUpdaterSpy = jest
+        .spyOn(require("../groupUpdater"), "default")
+        .mockResolvedValue(updatedGroup as any);
+
+      // Call the actual API route
+      const res = await server.post("/api/groups.update", {
+        body: {
+          token: user.getJwtToken(),
+          id: group.id,
+          name: newName,
+        },
+      });
+
+      expect(res.status).toEqual(200);
+      expect(groupUpdaterSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          group: expect.objectContaining({ id: group.id }),
+          name: newName,
+          actor: expect.objectContaining({ id: user.id }),
+          ip: expect.any(String),
+          transaction: expect.anything(),
+        })
+      );
+
+      groupUpdaterSpy.mockRestore();
+    });
+
+    it("should use groupDestroyer command when deleting groups via API", async () => {
+      const user = await buildAdmin();
+      const group = await buildGroup({
+        teamId: user.teamId,
+        createdById: user.id,
+      });
+
+      // Spy on the command
+      const groupDestroyerSpy = jest
+        .spyOn(require("../groupDestroyer"), "default")
+        .mockResolvedValue(undefined);
+
+      // Call the actual API route
+      const res = await server.post("/api/groups.delete", {
+        body: {
+          token: user.getJwtToken(),
+          id: group.id,
+        },
+      });
+
+      expect(res.status).toEqual(200);
+      expect(groupDestroyerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          group: expect.objectContaining({ id: group.id }),
+          actor: expect.objectContaining({ id: user.id }),
+          ip: expect.any(String),
+          transaction: expect.anything(),
+        })
+      );
+
+      groupDestroyerSpy.mockRestore();
+    });
+
+    it("should use groupUserCreator command when adding users to groups via API", async () => {
+      const actor = await buildAdmin();
+      const user = await buildUser({ teamId: actor.teamId });
+      const group = await buildGroup({ teamId: actor.teamId });
+
+      // Spy on the command and mock its return value
+      const fakeGroupUser = await buildGroupUser({
+        groupId: group.id,
+        userId: user.id,
+      });
+      fakeGroupUser.user = user;
+      const groupUserCreatorSpy = jest
+        .spyOn(require("../groupUserCreator"), "default")
+        .mockResolvedValue(fakeGroupUser);
+
+      // Call the actual API route
+      const res = await server.post("/api/groups.add_user", {
+        body: {
+          token: actor.getJwtToken(),
+          id: group.id,
+          userId: user.id,
+        },
+      });
+
+      expect(res.status).toEqual(200);
+      expect(groupUserCreatorSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          group: expect.objectContaining({ id: group.id }),
+          user: expect.objectContaining({ id: user.id }),
+          actor: expect.objectContaining({ id: actor.id }),
+          ip: expect.any(String),
+          transaction: expect.anything(),
+        })
+      );
+
+      groupUserCreatorSpy.mockRestore();
+    });
+
+    it("should use groupUserDestroyer command when removing users from groups via API", async () => {
+      const actor = await buildAdmin();
+      const user = await buildUser({ teamId: actor.teamId });
+      const group = await buildGroup({ teamId: actor.teamId });
+      await buildGroupUser({
+        groupId: group.id,
+        userId: user.id,
+      });
+
+      // Spy on the command
+      const groupUserDestroyerSpy = jest
+        .spyOn(require("../groupUserDestroyer"), "default")
+        .mockResolvedValue(undefined);
+
+      // Call the actual API route
+      const res = await server.post("/api/groups.remove_user", {
+        body: {
+          token: actor.getJwtToken(),
+          id: group.id,
+          userId: user.id,
+        },
+      });
+
+      expect(res.status).toEqual(200);
+      expect(groupUserDestroyerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          group: expect.objectContaining({ id: group.id }),
+          user: expect.objectContaining({ id: user.id }),
+          actor: expect.objectContaining({ id: actor.id }),
+          ip: expect.any(String),
+          transaction: expect.anything(),
+        })
+      );
+
+      groupUserDestroyerSpy.mockRestore();
     });
   });
 });
