@@ -12,6 +12,17 @@ import TestServer from "./TestServer";
 
 export function getTestServer() {
   const app = webService();
+
+  // Add redirectOnClient method for testing (same as in server/index.ts)
+  app.context.redirectOnClient = function (url: string) {
+    this.type = "text/html";
+    this.body = `
+<html>
+<head>
+<meta http-equiv="refresh" content="0;URL='${url}'"/>
+</head>`;
+  };
+
   onerror(app);
   const server = new TestServer(app);
 
