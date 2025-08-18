@@ -290,6 +290,10 @@ describe("DocumentSubscriptionProcessor", () => {
         });
       }
 
+      // Spy on GroupUser.findAllInBatches to verify it's called with correct parameters
+      const { GroupUser } = await import("@server/models");
+      const findAllInBatchesSpy = jest.spyOn(GroupUser, "findAllInBatches");
+
       const processor = new DocumentSubscriptionProcessor();
       await processor.perform({
         name: "documents.remove_group",
@@ -302,8 +306,25 @@ describe("DocumentSubscriptionProcessor", () => {
         data: { isNew: false, membershipId: "membership-1" },
       });
 
+      // Should call findAllInBatches with correct parameters
+      expect(findAllInBatchesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            groupId: group.id,
+            userId: expect.objectContaining({
+              [Symbol.for("ne")]: actor.id, // Op.ne creates a symbol
+            }),
+          }),
+          batchLimit: 10,
+        }),
+        expect.any(Function)
+      );
+
       // Should schedule tasks for all 25 users
       expect(mockSchedule).toHaveBeenCalledTimes(25);
+
+      // Clean up spy
+      findAllInBatchesSpy.mockRestore();
     });
   });
 });
