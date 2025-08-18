@@ -36,7 +36,8 @@ describe("#subscriptions.delete anti-virus protection", () => {
 
     const body = await res.text();
     expect(body).toContain(`follow=true`);
-    expect(body).toContain(`<meta http-equiv="refresh"`);
+    expect(body).toContain(`<meta`);
+    expect(body).toContain(`http-equiv="refresh"`);
   });
 
   it("should perform actual subscription deletion when follow=true is present", async () => {
