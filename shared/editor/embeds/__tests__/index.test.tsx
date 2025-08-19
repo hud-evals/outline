@@ -21,7 +21,7 @@ describe("embeds", () => {
         env.DROPBOX_APP_KEY = "test-app-key";
 
         // Re-import to get fresh embeds array with env var set
-        const { default: freshEmbeds } = jest.requireActual("./index");
+        const { default: freshEmbeds } = jest.requireActual("../index");
         const dropboxEmbed = freshEmbeds.find(
           (embed: EmbedDescriptor) => embed.title === "Dropbox"
         );
@@ -35,7 +35,7 @@ describe("embeds", () => {
       it("should have correct regex patterns for Dropbox URLs", () => {
         env.DROPBOX_APP_KEY = "test-app-key";
 
-        const { default: freshEmbeds } = jest.requireActual("./index");
+        const { default: freshEmbeds } = jest.requireActual("../index");
         const dropboxEmbed = freshEmbeds.find(
           (embed: EmbedDescriptor) => embed.title === "Dropbox"
         );
@@ -54,7 +54,7 @@ describe("embeds", () => {
       it("should use Dropbox component for rendering", () => {
         env.DROPBOX_APP_KEY = "test-app-key";
 
-        const { default: freshEmbeds } = jest.requireActual("./index");
+        const { default: freshEmbeds } = jest.requireActual("../index");
         const dropboxEmbed = freshEmbeds.find(
           (embed: EmbedDescriptor) => embed.title === "Dropbox"
         );
@@ -68,7 +68,7 @@ describe("embeds", () => {
       it("should not include Dropbox embed in the embeds array", () => {
         env.DROPBOX_APP_KEY = "";
 
-        const { default: freshEmbeds } = jest.requireActual("./index");
+        const { default: freshEmbeds } = jest.requireActual("../index");
         const dropboxEmbed = freshEmbeds.find(
           (embed: EmbedDescriptor) => embed.title === "Dropbox"
         );
