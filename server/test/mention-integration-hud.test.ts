@@ -105,9 +105,13 @@ This is important for the team.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          processor = (processors.default as Record<string, unknown>)[
-            notificationProcessor
-          ];
+          const ProcessorClass = (processors.default as Record<
+            string,
+            unknown
+          >)[notificationProcessor] as new () => {
+            perform: (event: unknown) => Promise<void>;
+          };
+          processor = new ProcessorClass();
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -118,9 +122,9 @@ This is important for the team.`,
       }
 
       // Process the event
-      await (
-        processor as { perform: (event: unknown) => Promise<void> }
-      ).perform(event);
+      await (processor as {
+        perform: (event: unknown) => Promise<void>;
+      }).perform(event);
 
       // Verify that notifications were created for mentioned users
       const notifications = await Notification.findAll({
@@ -192,9 +196,13 @@ This is important for the team.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          processor = (processors.default as Record<string, unknown>)[
-            notificationProcessor
-          ];
+          const ProcessorClass = (processors.default as Record<
+            string,
+            unknown
+          >)[notificationProcessor] as new () => {
+            perform: (event: unknown) => Promise<void>;
+          };
+          processor = new ProcessorClass();
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -204,9 +212,9 @@ This is important for the team.`,
         throw new Error("No notification processor found");
       }
 
-      await (
-        processor as { perform: (event: unknown) => Promise<void> }
-      ).perform(event);
+      await (processor as {
+        perform: (event: unknown) => Promise<void>;
+      }).perform(event);
 
       const notifications = await Notification.findAll({
         where: {
@@ -255,9 +263,13 @@ This is important for the team.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          processor = (processors.default as Record<string, unknown>)[
-            notificationProcessor
-          ];
+          const ProcessorClass = (processors.default as Record<
+            string,
+            unknown
+          >)[notificationProcessor] as new () => {
+            perform: (event: unknown) => Promise<void>;
+          };
+          processor = new ProcessorClass();
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -267,9 +279,9 @@ This is important for the team.`,
         throw new Error("No notification processor found");
       }
 
-      await (
-        processor as { perform: (event: unknown) => Promise<void> }
-      ).perform(event);
+      await (processor as {
+        perform: (event: unknown) => Promise<void>;
+      }).perform(event);
 
       const notifications = await Notification.findAll({
         where: {
@@ -307,8 +319,9 @@ This is important for the team.`,
 @${user3.name} is newly mentioned.
 
 @${user4.name} is also newly mentioned.`,
-        createdById: user1.id,
+        userId: user1.id,
         version: 2,
+        editorVersion: document.editorVersion || "1.0.0",
       });
 
       await document.update({
@@ -336,9 +349,13 @@ This is important for the team.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          processor = (processors.default as Record<string, unknown>)[
-            notificationProcessor
-          ];
+          const ProcessorClass = (processors.default as Record<
+            string,
+            unknown
+          >)[notificationProcessor] as new () => {
+            perform: (event: unknown) => Promise<void>;
+          };
+          processor = new ProcessorClass();
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -348,9 +365,9 @@ This is important for the team.`,
         throw new Error("No notification processor found");
       }
 
-      await (
-        processor as { perform: (event: unknown) => Promise<void> }
-      ).perform(event);
+      await (processor as {
+        perform: (event: unknown) => Promise<void>;
+      }).perform(event);
 
       // Should create notifications for newly mentioned users
       const notifications = await Notification.findAll({
@@ -390,8 +407,9 @@ This is important for the team.`,
         text: `# Test Document
 
 @${user2.name} is still mentioned.`,
-        createdById: user1.id,
+        userId: user1.id,
         version: 2,
+        editorVersion: document.editorVersion || "1.0.0",
       });
 
       await document.update({
@@ -419,9 +437,13 @@ This is important for the team.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          processor = (processors.default as Record<string, unknown>)[
-            notificationProcessor
-          ];
+          const ProcessorClass = (processors.default as Record<
+            string,
+            unknown
+          >)[notificationProcessor] as new () => {
+            perform: (event: unknown) => Promise<void>;
+          };
+          processor = new ProcessorClass();
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -431,9 +453,9 @@ This is important for the team.`,
         throw new Error("No notification processor found");
       }
 
-      await (
-        processor as { perform: (event: unknown) => Promise<void> }
-      ).perform(event);
+      await (processor as {
+        perform: (event: unknown) => Promise<void>;
+      }).perform(event);
 
       // Should not create any notifications since no new mentions were added
       const notifications = await Notification.findAll({
@@ -495,9 +517,13 @@ ${mentionFormat} please review this.`,
               name.toLowerCase().includes("mention")
           );
           if (notificationProcessor) {
-            processor = (processors.default as Record<string, unknown>)[
-              notificationProcessor
-            ];
+            const ProcessorClass = (processors.default as Record<
+              string,
+              unknown
+            >)[notificationProcessor] as new () => {
+              perform: (event: unknown) => Promise<void>;
+            };
+            processor = new ProcessorClass();
           }
         } catch (error) {
           throw new Error("Document notification processor is not implemented");
@@ -507,9 +533,9 @@ ${mentionFormat} please review this.`,
           throw new Error("No notification processor found");
         }
 
-        await (
-          processor as { perform: (event: unknown) => Promise<void> }
-        ).perform(event);
+        await (processor as {
+          perform: (event: unknown) => Promise<void>;
+        }).perform(event);
 
         const notifications = await Notification.findAll({
           where: {
@@ -558,9 +584,13 @@ ${mentionFormat} please review this.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          processor = (processors.default as Record<string, unknown>)[
-            notificationProcessor
-          ];
+          const ProcessorClass = (processors.default as Record<
+            string,
+            unknown
+          >)[notificationProcessor] as new () => {
+            perform: (event: unknown) => Promise<void>;
+          };
+          processor = new ProcessorClass();
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -570,9 +600,9 @@ ${mentionFormat} please review this.`,
         throw new Error("No notification processor found");
       }
 
-      await (
-        processor as { perform: (event: unknown) => Promise<void> }
-      ).perform(event);
+      await (processor as {
+        perform: (event: unknown) => Promise<void>;
+      }).perform(event);
 
       const notifications = await Notification.findAll({
         where: {
@@ -622,9 +652,13 @@ ${mentionFormat} please review this.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          processor = (processors.default as Record<string, unknown>)[
-            notificationProcessor
-          ];
+          const ProcessorClass = (processors.default as Record<
+            string,
+            unknown
+          >)[notificationProcessor] as new () => {
+            perform: (event: unknown) => Promise<void>;
+          };
+          processor = new ProcessorClass();
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -686,9 +720,13 @@ More content here.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          processor = (processors.default as Record<string, unknown>)[
-            notificationProcessor
-          ];
+          const ProcessorClass = (processors.default as Record<
+            string,
+            unknown
+          >)[notificationProcessor] as new () => {
+            perform: (event: unknown) => Promise<void>;
+          };
+          processor = new ProcessorClass();
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -698,9 +736,9 @@ More content here.`,
         throw new Error("No notification processor found");
       }
 
-      await (
-        processor as { perform: (event: unknown) => Promise<void> }
-      ).perform(event);
+      await (processor as {
+        perform: (event: unknown) => Promise<void>;
+      }).perform(event);
 
       const notifications = await Notification.findAll({
         where: {
@@ -746,9 +784,13 @@ More content here.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          processor = (processors.default as Record<string, unknown>)[
-            notificationProcessor
-          ];
+          const ProcessorClass = (processors.default as Record<
+            string,
+            unknown
+          >)[notificationProcessor] as new () => {
+            perform: (event: unknown) => Promise<void>;
+          };
+          processor = new ProcessorClass();
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -818,9 +860,13 @@ Here is the main content that @${user3.name} needs to review.
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          processor = (processors.default as Record<string, unknown>)[
-            notificationProcessor
-          ];
+          const ProcessorClass = (processors.default as Record<
+            string,
+            unknown
+          >)[notificationProcessor] as new () => {
+            perform: (event: unknown) => Promise<void>;
+          };
+          processor = new ProcessorClass();
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -830,9 +876,9 @@ Here is the main content that @${user3.name} needs to review.
         throw new Error("No notification processor found");
       }
 
-      await (
-        processor as { perform: (event: unknown) => Promise<void> }
-      ).perform(event);
+      await (processor as {
+        perform: (event: unknown) => Promise<void>;
+      }).perform(event);
 
       const notifications = await Notification.findAll({
         where: {
@@ -881,9 +927,13 @@ Here is the main content that @${user3.name} needs to review.
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          processor = (processors.default as Record<string, unknown>)[
-            notificationProcessor
-          ];
+          const ProcessorClass = (processors.default as Record<
+            string,
+            unknown
+          >)[notificationProcessor] as new () => {
+            perform: (event: unknown) => Promise<void>;
+          };
+          processor = new ProcessorClass();
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -893,9 +943,9 @@ Here is the main content that @${user3.name} needs to review.
         throw new Error("No notification processor found");
       }
 
-      await (
-        processor as { perform: (event: unknown) => Promise<void> }
-      ).perform(event);
+      await (processor as {
+        perform: (event: unknown) => Promise<void>;
+      }).perform(event);
 
       const notifications = await Notification.findAll({
         where: {
