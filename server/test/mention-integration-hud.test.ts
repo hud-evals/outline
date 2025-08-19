@@ -105,13 +105,9 @@ This is important for the team.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          const ProcessorClass = (processors.default as Record<
-            string,
-            unknown
-          >)[notificationProcessor] as new () => {
-            perform: (event: unknown) => Promise<void>;
-          };
-          processor = new ProcessorClass();
+          processor = (processors.default as Record<string, unknown>)[
+            notificationProcessor
+          ];
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -196,13 +192,9 @@ This is important for the team.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          const ProcessorClass = (processors.default as Record<
-            string,
-            unknown
-          >)[notificationProcessor] as new () => {
-            perform: (event: unknown) => Promise<void>;
-          };
-          processor = new ProcessorClass();
+          processor = (processors.default as Record<string, unknown>)[
+            notificationProcessor
+          ];
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -263,13 +255,9 @@ This is important for the team.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          const ProcessorClass = (processors.default as Record<
-            string,
-            unknown
-          >)[notificationProcessor] as new () => {
-            perform: (event: unknown) => Promise<void>;
-          };
-          processor = new ProcessorClass();
+          processor = (processors.default as Record<string, unknown>)[
+            notificationProcessor
+          ];
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -349,13 +337,9 @@ This is important for the team.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          const ProcessorClass = (processors.default as Record<
-            string,
-            unknown
-          >)[notificationProcessor] as new () => {
-            perform: (event: unknown) => Promise<void>;
-          };
-          processor = new ProcessorClass();
+          processor = (processors.default as Record<string, unknown>)[
+            notificationProcessor
+          ];
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -437,13 +421,9 @@ This is important for the team.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          const ProcessorClass = (processors.default as Record<
-            string,
-            unknown
-          >)[notificationProcessor] as new () => {
-            perform: (event: unknown) => Promise<void>;
-          };
-          processor = new ProcessorClass();
+          processor = (processors.default as Record<string, unknown>)[
+            notificationProcessor
+          ];
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -517,13 +497,9 @@ ${mentionFormat} please review this.`,
               name.toLowerCase().includes("mention")
           );
           if (notificationProcessor) {
-            const ProcessorClass = (processors.default as Record<
-              string,
-              unknown
-            >)[notificationProcessor] as new () => {
-              perform: (event: unknown) => Promise<void>;
-            };
-            processor = new ProcessorClass();
+            processor = (processors.default as Record<string, unknown>)[
+              notificationProcessor
+            ];
           }
         } catch (error) {
           throw new Error("Document notification processor is not implemented");
@@ -584,13 +560,9 @@ ${mentionFormat} please review this.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          const ProcessorClass = (processors.default as Record<
-            string,
-            unknown
-          >)[notificationProcessor] as new () => {
-            perform: (event: unknown) => Promise<void>;
-          };
-          processor = new ProcessorClass();
+          processor = (processors.default as Record<string, unknown>)[
+            notificationProcessor
+          ];
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -652,13 +624,9 @@ ${mentionFormat} please review this.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          const ProcessorClass = (processors.default as Record<
-            string,
-            unknown
-          >)[notificationProcessor] as new () => {
-            perform: (event: unknown) => Promise<void>;
-          };
-          processor = new ProcessorClass();
+          processor = (processors.default as Record<string, unknown>)[
+            notificationProcessor
+          ];
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -720,13 +688,9 @@ More content here.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          const ProcessorClass = (processors.default as Record<
-            string,
-            unknown
-          >)[notificationProcessor] as new () => {
-            perform: (event: unknown) => Promise<void>;
-          };
-          processor = new ProcessorClass();
+          processor = (processors.default as Record<string, unknown>)[
+            notificationProcessor
+          ];
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -784,13 +748,9 @@ More content here.`,
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          const ProcessorClass = (processors.default as Record<
-            string,
-            unknown
-          >)[notificationProcessor] as new () => {
-            perform: (event: unknown) => Promise<void>;
-          };
-          processor = new ProcessorClass();
+          processor = (processors.default as Record<string, unknown>)[
+            notificationProcessor
+          ];
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -860,13 +820,9 @@ Here is the main content that @${user3.name} needs to review.
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          const ProcessorClass = (processors.default as Record<
-            string,
-            unknown
-          >)[notificationProcessor] as new () => {
-            perform: (event: unknown) => Promise<void>;
-          };
-          processor = new ProcessorClass();
+          processor = (processors.default as Record<string, unknown>)[
+            notificationProcessor
+          ];
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
@@ -927,13 +883,9 @@ Here is the main content that @${user3.name} needs to review.
             name.toLowerCase().includes("mention")
         );
         if (notificationProcessor) {
-          const ProcessorClass = (processors.default as Record<
-            string,
-            unknown
-          >)[notificationProcessor] as new () => {
-            perform: (event: unknown) => Promise<void>;
-          };
-          processor = new ProcessorClass();
+          processor = (processors.default as Record<string, unknown>)[
+            notificationProcessor
+          ];
         }
       } catch (error) {
         throw new Error("Document notification processor is not implemented");
