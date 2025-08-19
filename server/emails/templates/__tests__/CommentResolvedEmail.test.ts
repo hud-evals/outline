@@ -8,7 +8,7 @@ import {
   buildCollection,
 } from "@server/test/factories";
 // eslint-disable-next-line import/no-unresolved
-import CommentResolvedEmail from "./CommentResolvedEmail";
+import CommentResolvedEmail from "../CommentResolvedEmail";
 
 jest.mock("@server/models/helpers/NotificationSettingsHelper");
 jest.mock("@server/policies");
