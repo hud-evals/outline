@@ -5,7 +5,7 @@ import Storage from "../../../utils/Storage";
 import CodeFence from "../CodeFence";
 
 // Mock Storage module
-jest.mock("../../utils/Storage");
+jest.mock("../../../utils/Storage");
 
 // Mock sonner toast
 jest.mock("sonner", () => ({
@@ -136,13 +136,20 @@ describe("CodeFence", () => {
         // Mock Storage to return undefined for recent language
         (Storage.get as jest.Mock).mockReturnValue(undefined);
 
+        // Create a test document with a paragraph
+        const doc = testSchema.nodes.doc.create(null, [
+          testSchema.nodes.paragraph.create(),
+        ]);
+        const state = EditorState.create({
+          doc,
+          schema: testSchema,
+        });
+        const dispatch = jest.fn();
+
         const commands = codeFence.commands({
           type: testSchema.nodes.code_block,
           schema: testSchema,
         });
-
-        const state = EditorState.create({ schema: testSchema });
-        const dispatch = jest.fn();
 
         // Execute code_block command without language
         const command = commands.code_block({});
@@ -150,7 +157,18 @@ describe("CodeFence", () => {
 
         // Should have checked for recent language
         expect(Storage.get).toHaveBeenCalledWith("rme-code-language");
-        // When no recent language, it should use DEFAULT_LANGUAGE (javascript)
+
+        // When no recent language exists, it should create a code block with DEFAULT_LANGUAGE
+        // Check that dispatch was called with a transaction
+        expect(dispatch).toHaveBeenCalled();
+
+        // Verify the transaction creates a code_block with language: "javascript"
+        const transaction = dispatch.mock.calls[0][0];
+        if (transaction && transaction.doc) {
+          const codeBlock = transaction.doc.firstChild;
+          expect(codeBlock?.type.name).toBe("code_block");
+          expect(codeBlock?.attrs.language).toBe("javascript");
+        }
       });
 
       it("should override saved language when explicit language is provided", () => {
