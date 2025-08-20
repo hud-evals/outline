@@ -1,91 +1,186 @@
-// Test for PR #9365: Update import button to show Uploading state
+// Test for PR #9365: Update import button to show Uploading state during file upload
 
-import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { ThemeProvider } from "styled-components";
+import { light as lightTheme } from "@shared/styles/theme";
+import DropToImport from "../DropToImport";
+
+// Mock react-merge-refs to fix ES module import issue
+jest.mock("react-merge-refs", () => ({
+  mergeRefs:
+    (...refs: any[]) =>
+    (element: any) => {
+      refs.forEach((ref) => {
+        if (typeof ref === "function") {
+          ref(element);
+          // eslint-disable-next-line eqeqeq
+        } else if (ref != null) {
+          ref.current = element;
+        }
+      });
+    },
+}));
+
+// Mock the hooks and dependencies
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+jest.mock("~/hooks/useStores", () => ({
+  __esModule: true,
+  default: () => ({
+    collections: {
+      import: jest.fn().mockResolvedValue({}),
+    },
+  }),
+}));
+
+jest.mock("~/utils/files", () => ({
+  uploadFile: jest
+    .fn()
+    .mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ id: "test-id" }), 100)
+        )
+    ),
+}));
+
+jest.mock("sonner", () => ({
+  toast: {
+    error: jest.fn(),
+    message: jest.fn(),
+  },
+}));
+
+jest.mock("~/components/LoadingIndicator", () => ({
+  __esModule: true,
+  default: () => <div>Loading...</div>,
+}));
+
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: jest.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(), // deprecated
+    removeListener: jest.fn(), // deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+});
 
 describe("PR #9365: Import button uploading state", () => {
-  it("should show Uploading text when isImporting is true", () => {
-    // Test the button text change from patch
-    
-    // Before: Always "Start import"
-    const beforeState = {
-      text: "Start import",
-      disabled: false // only disabled when no file
-    };
-    
-    // After: Dynamic text based on importing state
-    const duringUpload = {
-      text: "Uploading" + "…",
-      disabled: true // disabled when importing
-    };
-    
-    const afterUpload = {
-      text: "Start import",
-      disabled: false
-    };
-    
-    expect(duringUpload.text).toBe("Uploading…");
-    expect(duringUpload.disabled).toBe(true);
-    expect(afterUpload.text).toBe("Start import");
-  });
+  describe("DropToImport component", () => {
+    it("should show 'Start import' text initially", () => {
+      render(
+        <ThemeProvider theme={lightTheme}>
+          <DropToImport onSubmit={() => {}}>
+            <div>Drop files here</div>
+          </DropToImport>
+        </ThemeProvider>
+      );
 
-  it("should disable button during import in DropToImport", () => {
-    // Test the disabled condition change from patch
-    
-    // Before: disabled={\!file}
-    const oldCondition = "\!file";
-    
-    // After: disabled={\!file || isImporting}
-    const newCondition = "\!file || isImporting";
-    
-    const testScenarios = [
-      { file: null, isImporting: false, shouldDisable: true },
-      { file: "file.txt", isImporting: false, shouldDisable: false },
-      { file: "file.txt", isImporting: true, shouldDisable: true },
-      { file: null, isImporting: true, shouldDisable: true }
-    ];
-    
-    testScenarios.forEach(scenario => {
-      const isDisabled = \!scenario.file || scenario.isImporting;
-      expect(isDisabled).toBe(scenario.shouldDisable);
+      const button = screen.getByRole("button", {
+        name: "Start import",
+      }) as HTMLButtonElement;
+      expect(button).toBeTruthy();
     });
-  });
 
-  it("should use proper i18n pattern for uploading text", () => {
-    // Test the i18n improvement from patch
-    
-    // Before: t("Uploading…") - ellipsis inside translation
-    const oldPattern = "t(\"Uploading…\")";
-    
-    // After: t("Uploading") + "…" - ellipsis outside translation
-    const newPattern = "t(\"Uploading\") + \"…\"";
-    
-    const improvedI18n = {
-      separatesEllipsis: true,
-      betterForTranslation: true,
-      consistentPattern: true
-    };
-    
-    expect(improvedI18n.separatesEllipsis).toBe(true);
-    expect(improvedI18n.betterForTranslation).toBe(true);
-    expect(newPattern).toContain("+");
-  });
+    it("should be disabled when no file is selected", () => {
+      render(
+        <ThemeProvider theme={lightTheme}>
+          <DropToImport onSubmit={() => {}}>
+            <div>Drop files here</div>
+          </DropToImport>
+        </ThemeProvider>
+      );
 
-  it("should apply to both DropToImport and ImportDialog components", () => {
-    // Test that both components get the same treatment
-    
-    const affectedComponents = [
-      "DropToImport", 
-      "ImportDialog"
-    ];
-    
-    const bothComponentsUpdated = affectedComponents.length === 2;
-    expect(bothComponentsUpdated).toBe(true);
-    
-    // Both should use same uploading pattern
-    const uploadingPattern = "submitting/isImporting ? t(\"Uploading\") + \"…\" : t(\"Start import\")";
-    expect(uploadingPattern).toContain("Uploading");
-    expect(uploadingPattern).toContain("Start import");
+      const button = screen.getByRole("button", {
+        name: "Start import",
+      }) as HTMLButtonElement;
+      expect(button.disabled).toBe(true);
+    });
+
+    it("should change to 'Uploading…' when importing", async () => {
+      render(
+        <ThemeProvider theme={lightTheme}>
+          <DropToImport onSubmit={() => {}}>
+            <div>Drop files here</div>
+          </DropToImport>
+        </ThemeProvider>
+      );
+
+      const button = screen.getByRole("button", {
+        name: "Start import",
+      }) as HTMLButtonElement;
+
+      // Add a file to enable the button
+      const fileInput =
+        button.parentElement?.parentElement?.querySelector(
+          'input[type="file"]'
+        );
+      if (fileInput) {
+        const file = new File(["test"], "test.zip", {
+          type: "application/zip",
+        });
+        fireEvent.change(fileInput, { target: { files: [file] } });
+      }
+
+      await waitFor(() => {
+        expect(button.disabled).toBe(false);
+      });
+
+      fireEvent.click(button);
+
+      await waitFor(
+        () => {
+          expect(button.textContent).toBe("Uploading…");
+        },
+        { timeout: 50 }
+      );
+    });
+
+    it("should be disabled during import", async () => {
+      render(
+        <ThemeProvider theme={lightTheme}>
+          <DropToImport onSubmit={() => {}}>
+            <div>Drop files here</div>
+          </DropToImport>
+        </ThemeProvider>
+      );
+
+      const button = screen.getByRole("button", {
+        name: "Start import",
+      }) as HTMLButtonElement;
+
+      const fileInput =
+        button.parentElement?.parentElement?.querySelector(
+          'input[type="file"]'
+        );
+      if (fileInput) {
+        const file = new File(["test"], "test.zip", {
+          type: "application/zip",
+        });
+        fireEvent.change(fileInput, { target: { files: [file] } });
+      }
+
+      await waitFor(() => {
+        expect(button.disabled).toBe(false);
+      });
+
+      fireEvent.click(button);
+
+      await waitFor(
+        () => {
+          expect(button.disabled).toBe(true);
+        },
+        { timeout: 50 }
+      );
+    });
   });
 });
