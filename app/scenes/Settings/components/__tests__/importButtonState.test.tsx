@@ -87,7 +87,7 @@ Object.defineProperty(window, "matchMedia", {
 
 describe("PR #9365: Import button uploading state", () => {
   describe("DropToImport component", () => {
-    it("should show 'Start import' text initially", () => {
+    it("should show 'Start import' text and disabled initially", () => {
       render(
         <ThemeProvider theme={lightTheme}>
           <DropToImport onSubmit={() => {}}>
@@ -100,24 +100,10 @@ describe("PR #9365: Import button uploading state", () => {
         name: "Start import",
       }) as HTMLButtonElement;
       expect(button).toBeTruthy();
-    });
-
-    it("should be disabled when no file is selected", () => {
-      render(
-        <ThemeProvider theme={lightTheme}>
-          <DropToImport onSubmit={() => {}}>
-            <div>Drop files here</div>
-          </DropToImport>
-        </ThemeProvider>
-      );
-
-      const button = screen.getByRole("button", {
-        name: "Start import",
-      }) as HTMLButtonElement;
       expect(button.disabled).toBe(true);
     });
 
-    it("should change to 'Uploading…' when importing", async () => {
+    it("should change to 'Uploading…' and disabled when importing", async () => {
       render(
         <ThemeProvider theme={lightTheme}>
           <DropToImport onSubmit={() => {}}>
@@ -151,43 +137,6 @@ describe("PR #9365: Import button uploading state", () => {
       await waitFor(
         () => {
           expect(button.textContent).toBe("Uploading…");
-        },
-        { timeout: 50 }
-      );
-    });
-
-    it("should be disabled during import", async () => {
-      render(
-        <ThemeProvider theme={lightTheme}>
-          <DropToImport onSubmit={() => {}}>
-            <div>Drop files here</div>
-          </DropToImport>
-        </ThemeProvider>
-      );
-
-      const button = screen.getByRole("button", {
-        name: "Start import",
-      }) as HTMLButtonElement;
-
-      const fileInput =
-        button.parentElement?.parentElement?.querySelector(
-          'input[type="file"]'
-        );
-      if (fileInput) {
-        const file = new File(["test"], "test.zip", {
-          type: "application/zip",
-        });
-        fireEvent.change(fileInput, { target: { files: [file] } });
-      }
-
-      await waitFor(() => {
-        expect(button.disabled).toBe(false);
-      });
-
-      fireEvent.click(button);
-
-      await waitFor(
-        () => {
           expect(button.disabled).toBe(true);
         },
         { timeout: 50 }
@@ -196,7 +145,7 @@ describe("PR #9365: Import button uploading state", () => {
   });
 
   describe("NotionImportDialog component", () => {
-    it("should show 'Start import' text initially", () => {
+    it("should show 'Start import' text and not disabled initially", () => {
       render(
         <ThemeProvider theme={lightTheme}>
           <ImportDialog
@@ -210,25 +159,10 @@ describe("PR #9365: Import button uploading state", () => {
         name: "Start import",
       }) as HTMLButtonElement;
       expect(button).toBeTruthy();
-    });
-
-    it("should not be disabled initially", () => {
-      render(
-        <ThemeProvider theme={lightTheme}>
-          <ImportDialog
-            integrationId="test-integration-id"
-            onSubmit={() => {}}
-          />
-        </ThemeProvider>
-      );
-
-      const button = screen.getByRole("button", {
-        name: "Start import",
-      }) as HTMLButtonElement;
       expect(button.disabled).toBe(false);
     });
 
-    it("should change to 'Uploading…' when importing", async () => {
+    it("should change to 'Uploading…' and disabled when importing", async () => {
       render(
         <ThemeProvider theme={lightTheme}>
           <ImportDialog
@@ -249,31 +183,6 @@ describe("PR #9365: Import button uploading state", () => {
       await waitFor(
         () => {
           expect(button.textContent).toBe("Uploading…");
-        },
-        { timeout: 50 }
-      );
-    });
-
-    it("should be disabled during import", async () => {
-      render(
-        <ThemeProvider theme={lightTheme}>
-          <ImportDialog
-            integrationId="test-integration-id"
-            onSubmit={() => {}}
-          />
-        </ThemeProvider>
-      );
-
-      const button = screen.getByRole("button", {
-        name: "Start import",
-      }) as HTMLButtonElement;
-
-      // Click to start import
-      fireEvent.click(button);
-
-      // Should be disabled during import
-      await waitFor(
-        () => {
           expect(button.disabled).toBe(true);
         },
         { timeout: 50 }
