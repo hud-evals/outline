@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "styled-components";
 import { light as lightTheme } from "@shared/styles/theme";
 import DropToImport from "../DropToImport";
+import { ImportDialog } from "plugins/notion/client/components/ImportDialog";
 
 // Mock react-merge-refs to fix ES module import issue
 jest.mock("react-merge-refs", () => ({
@@ -33,6 +34,16 @@ jest.mock("~/hooks/useStores", () => ({
   default: () => ({
     collections: {
       import: jest.fn().mockResolvedValue({}),
+    },
+    imports: {
+      create: jest
+        .fn()
+        .mockImplementation(
+          () =>
+            new Promise((resolve) =>
+              setTimeout(() => resolve({ id: "test-import-id" }), 100)
+            )
+        ),
     },
   }),
 }));
@@ -175,6 +186,92 @@ describe("PR #9365: Import button uploading state", () => {
 
       fireEvent.click(button);
 
+      await waitFor(
+        () => {
+          expect(button.disabled).toBe(true);
+        },
+        { timeout: 50 }
+      );
+    });
+  });
+
+  describe("NotionImportDialog component", () => {
+    it("should show 'Start import' text initially", () => {
+      render(
+        <ThemeProvider theme={lightTheme}>
+          <ImportDialog
+            integrationId="test-integration-id"
+            onSubmit={() => {}}
+          />
+        </ThemeProvider>
+      );
+
+      const button = screen.getByRole("button", {
+        name: "Start import",
+      }) as HTMLButtonElement;
+      expect(button).toBeTruthy();
+    });
+
+    it("should not be disabled initially", () => {
+      render(
+        <ThemeProvider theme={lightTheme}>
+          <ImportDialog
+            integrationId="test-integration-id"
+            onSubmit={() => {}}
+          />
+        </ThemeProvider>
+      );
+
+      const button = screen.getByRole("button", {
+        name: "Start import",
+      }) as HTMLButtonElement;
+      expect(button.disabled).toBe(false);
+    });
+
+    it("should change to 'Uploading…' when importing", async () => {
+      render(
+        <ThemeProvider theme={lightTheme}>
+          <ImportDialog
+            integrationId="test-integration-id"
+            onSubmit={() => {}}
+          />
+        </ThemeProvider>
+      );
+
+      const button = screen.getByRole("button", {
+        name: "Start import",
+      }) as HTMLButtonElement;
+
+      // Click to start import
+      fireEvent.click(button);
+
+      // Should show "Uploading…" text during import
+      await waitFor(
+        () => {
+          expect(button.textContent).toBe("Uploading…");
+        },
+        { timeout: 50 }
+      );
+    });
+
+    it("should be disabled during import", async () => {
+      render(
+        <ThemeProvider theme={lightTheme}>
+          <ImportDialog
+            integrationId="test-integration-id"
+            onSubmit={() => {}}
+          />
+        </ThemeProvider>
+      );
+
+      const button = screen.getByRole("button", {
+        name: "Start import",
+      }) as HTMLButtonElement;
+
+      // Click to start import
+      fireEvent.click(button);
+
+      // Should be disabled during import
       await waitFor(
         () => {
           expect(button.disabled).toBe(true);
