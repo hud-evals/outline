@@ -1,98 +1,339 @@
+import { subHours, subMinutes } from "date-fns";
+import { WebhookSubscription } from "@server/models";
+import {
+  buildWebhookSubscription,
+  buildWebhookDelivery,
+  buildUser,
+} from "@server/test/factories";
+import DeliverWebhookTask from "../DeliverWebhookTask";
+
 // Test for PR #9800: Improve webhook disabling heuristic with time-based analysis
-// This test verifies the new time-based failure rate analysis for webhook disabling
-
-import { subHours } from "date-fns";
-import { WebhookSubscription, WebhookDelivery } from "@server/models";
-import { buildWebhookSubscription, buildWebhookDelivery } from "@server/test/factories";
-import env from "@server/env";
-
 describe("PR #9800: Webhook disabling time-based heuristic", () => {
-  beforeEach(() => {
-    // Set test environment variables
-    env.WEBHOOK_FAILURE_TIME_WINDOW = 86400; // 24 hours in seconds
-    env.WEBHOOK_FAILURE_RATE_THRESHOLD = 80; // 80% failure rate
+  let subscription: WebhookSubscription;
+  let user: any;
+
+  beforeEach(async () => {
+    subscription = await buildWebhookSubscription({
+      url: "http://example.com",
+      events: ["*"],
+    });
+    user = await buildUser({ teamId: subscription.teamId });
   });
 
-  it("should use time-window analysis instead of simple count", () => {
-    // Test the logic change from patch
-    
-    // Before: simple count-based (last 25 deliveries all failed)
-    const oldLogic = {
-      method: "count-based",
-      threshold: 25,
-      requirement: "all consecutive failures"
-    };
-    
-    // After: time-based failure rate analysis
-    const newLogic = {
-      method: "time-based",
-      timeWindow: 86400, // 24 hours
-      failureRateThreshold: 80, // 80%
-      minDeliveries: 10
-    };
-    
-    expect(newLogic.method).toBe("time-based");
-    expect(newLogic.failureRateThreshold).toBe(80);
-    expect(newLogic.minDeliveries).toBe(10);
-    expect(oldLogic.method).not.toBe(newLogic.method);
-  });
+  describe("Time window analysis", () => {
+    it("should only consider deliveries within the time window (24 hours)", async () => {
+      const now = new Date();
 
-  it("should calculate failure rate within time window", () => {
-    // Test failure rate calculation logic
-    const timeWindowStart = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24h ago
-    
-    const testScenarios = [
-      { total: 10, failed: 8, expectedRate: 80 }, // 80% failure rate
-      { total: 15, failed: 12, expectedRate: 80 }, // 80% failure rate
-      { total: 20, failed: 10, expectedRate: 50 }, // 50% failure rate
-      { total: 5, failed: 5, expectedRate: 100 }   // 100% but below min threshold
-    ];
-    
-    testScenarios.forEach(scenario => {
-      const failureRate = (scenario.failed / scenario.total) * 100;
-      expect(failureRate).toBe(scenario.expectedRate);
+      // Create 5 old failed deliveries (25 hours ago) - should be ignored
+      for (let i = 0; i < 5; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "failed",
+          createdAt: subHours(now, 25),
+        });
+      }
+
+      // Create 15 recent deliveries: 12 failed, 3 successful (80% failure rate)
+      for (let i = 0; i < 12; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "failed",
+          createdAt: subMinutes(now, 30 + i * 10), // Spread over last 2 hours
+        });
+      }
+
+      for (let i = 0; i < 3; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "success",
+          createdAt: subMinutes(now, 10 + i * 5),
+        });
+      }
+
+      // Test that checkAndDisableSubscription only considers recent deliveries
+      const task = new DeliverWebhookTask();
+      await (task as any).checkAndDisableSubscription(subscription);
+
+      await subscription.reload();
+
+      // Should be disabled because recent failure rate is 80% with 15 deliveries (>= 10 minimum)
+      // Old failures should not count toward the rate
+      expect(subscription.enabled).toBe(false);
+    });
+
+    it("should not disable if old failures make total count high but recent rate is low", async () => {
+      const now = new Date();
+
+      // Create 25 old failed deliveries (25 hours ago) - should be ignored
+      for (let i = 0; i < 25; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "failed",
+          createdAt: subHours(now, 25),
+        });
+      }
+
+      // Create 10 recent successful deliveries (0% failure rate)
+      for (let i = 0; i < 10; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "success",
+          createdAt: subMinutes(now, 10 + i * 5),
+        });
+      }
+
+      const task = new DeliverWebhookTask();
+      await (task as any).checkAndDisableSubscription(subscription);
+
+      await subscription.reload();
+
+      // Should not be disabled because recent failure rate is 0%
+      expect(subscription.enabled).toBe(true);
     });
   });
 
-  it("should require minimum deliveries before disabling", () => {
-    // Test minimum delivery threshold from patch
-    const minDeliveriesForAnalysis = 10; // From patch: MIN_DELIVERIES_FOR_ANALYSIS
-    
-    const scenarios = [
-      { deliveries: 5, failures: 5, shouldDisable: false }, // Below minimum
-      { deliveries: 10, failures: 8, shouldDisable: true }, // Above minimum, high failure rate
-      { deliveries: 15, failures: 12, shouldDisable: true } // Above minimum, high failure rate
-    ];
-    
-    scenarios.forEach(scenario => {
-      const failureRate = (scenario.failures / scenario.deliveries) * 100;
-      const hasMinDeliveries = scenario.deliveries >= minDeliveriesForAnalysis;
-      const hasHighFailureRate = failureRate >= 80;
-      const shouldDisable = hasMinDeliveries && hasHighFailureRate;
-      
-      expect(shouldDisable).toBe(scenario.shouldDisable);
+  describe("Failure rate threshold", () => {
+    it("should disable webhook when failure rate equals 80%", async () => {
+      const now = new Date();
+
+      // Create exactly 80% failure rate: 8 failed, 2 successful out of 10 deliveries
+      for (let i = 0; i < 8; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "failed",
+          createdAt: subMinutes(now, 60 + i * 10),
+        });
+      }
+
+      for (let i = 0; i < 2; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "success",
+          createdAt: subMinutes(now, 10 + i * 5),
+        });
+      }
+
+      const task = new DeliverWebhookTask();
+      await (task as any).checkAndDisableSubscription(subscription);
+
+      await subscription.reload();
+      expect(subscription.enabled).toBe(false);
+    });
+
+    it("should disable webhook when failure rate exceeds 80%", async () => {
+      const now = new Date();
+
+      // Create 90% failure rate: 9 failed, 1 successful out of 10 deliveries
+      for (let i = 0; i < 9; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "failed",
+          createdAt: subMinutes(now, 60 + i * 10),
+        });
+      }
+
+      await buildWebhookDelivery({
+        webhookSubscriptionId: subscription.id,
+        status: "success",
+        createdAt: subMinutes(now, 5),
+      });
+
+      const task = new DeliverWebhookTask();
+      await (task as any).checkAndDisableSubscription(subscription);
+
+      await subscription.reload();
+      expect(subscription.enabled).toBe(false);
+    });
+
+    it("should not disable webhook when failure rate is below 80%", async () => {
+      const now = new Date();
+
+      // Create 70% failure rate: 7 failed, 3 successful out of 10 deliveries
+      for (let i = 0; i < 7; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "failed",
+          createdAt: subMinutes(now, 60 + i * 10),
+        });
+      }
+
+      for (let i = 0; i < 3; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "success",
+          createdAt: subMinutes(now, 10 + i * 5),
+        });
+      }
+
+      const task = new DeliverWebhookTask();
+      await (task as any).checkAndDisableSubscription(subscription);
+
+      await subscription.reload();
+      expect(subscription.enabled).toBe(true);
     });
   });
 
-  it("should add environment variables for configuration", () => {
-    // Test environment variable additions from patch
-    const envVars = {
-      WEBHOOK_FAILURE_TIME_WINDOW: 86400, // seconds
-      WEBHOOK_FAILURE_RATE_THRESHOLD: 80 // percentage
-    };
-    
-    expect(envVars.WEBHOOK_FAILURE_TIME_WINDOW).toBe(86400);
-    expect(envVars.WEBHOOK_FAILURE_RATE_THRESHOLD).toBe(80);
+  describe("Minimum delivery requirement", () => {
+    it("should not disable webhook with less than 10 deliveries even at 100% failure rate", async () => {
+      const now = new Date();
+
+      // Create only 9 failed deliveries (100% failure rate but below minimum)
+      for (let i = 0; i < 9; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "failed",
+          createdAt: subMinutes(now, 10 + i * 5),
+        });
+      }
+
+      const task = new DeliverWebhookTask();
+      await (task as any).checkAndDisableSubscription(subscription);
+
+      await subscription.reload();
+      expect(subscription.enabled).toBe(true);
+    });
+
+    it("should disable webhook with exactly 10 deliveries at 100% failure rate", async () => {
+      const now = new Date();
+
+      // Create exactly 10 failed deliveries (100% failure rate, meets minimum)
+      for (let i = 0; i < 10; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "failed",
+          createdAt: subMinutes(now, 10 + i * 5),
+        });
+      }
+
+      const task = new DeliverWebhookTask();
+      await (task as any).checkAndDisableSubscription(subscription);
+
+      await subscription.reload();
+      expect(subscription.enabled).toBe(false);
+    });
+
+    it("should disable webhook with more than 10 deliveries at high failure rate", async () => {
+      const now = new Date();
+
+      // Create 20 deliveries: 16 failed, 4 successful (80% failure rate)
+      for (let i = 0; i < 16; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "failed",
+          createdAt: subMinutes(now, 120 + i * 5),
+        });
+      }
+
+      for (let i = 0; i < 4; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "success",
+          createdAt: subMinutes(now, 10 + i * 5),
+        });
+      }
+
+      const task = new DeliverWebhookTask();
+      await (task as any).checkAndDisableSubscription(subscription);
+
+      await subscription.reload();
+      expect(subscription.enabled).toBe(false);
+    });
   });
 
-  it("should update email template messaging", () => {
-    // Test email template change from patch
-    const oldMessage = "last 25 delivery attempts have failed";
-    const newMessage = "high failure rate in recent delivery attempts";
-    
-    const messageUpdated = oldMessage !== newMessage;
-    expect(messageUpdated).toBe(true);
-    expect(newMessage).toContain("high failure rate");
-    expect(newMessage).toContain("recent delivery attempts");
+  describe("Mixed scenarios", () => {
+    it("should handle complex mixed success/failure patterns correctly", async () => {
+      const now = new Date();
+
+      // Create a complex pattern: 15 total deliveries within 24h
+      // Pattern: F F S F F F S F F F S F F F S = 11 failed, 4 successful = 73.33% failure rate
+      const pattern = [
+        "failed",
+        "failed",
+        "success",
+        "failed",
+        "failed",
+        "failed",
+        "success",
+        "failed",
+        "failed",
+        "failed",
+        "success",
+        "failed",
+        "failed",
+        "failed",
+        "success",
+      ];
+
+      for (let i = 0; i < pattern.length; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: pattern[i] as "failed" | "success",
+          createdAt: subMinutes(now, 120 + i * 8), // Spread over 2 hours
+        });
+      }
+
+      const task = new DeliverWebhookTask();
+      await (task as any).checkAndDisableSubscription(subscription);
+
+      await subscription.reload();
+
+      // Should not be disabled because failure rate (73.33%) is below 80% threshold
+      expect(subscription.enabled).toBe(true);
+    });
+
+    it("should ignore pending deliveries when calculating failure rate", async () => {
+      const now = new Date();
+
+      // Create 8 failed, 1 successful, 1 pending out of 10 deliveries
+      // Should calculate rate as 8/9 = 88.89% (ignoring pending)
+      for (let i = 0; i < 8; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "failed",
+          createdAt: subMinutes(now, 60 + i * 7),
+        });
+      }
+
+      await buildWebhookDelivery({
+        webhookSubscriptionId: subscription.id,
+        status: "success",
+        createdAt: subMinutes(now, 30),
+      });
+
+      await buildWebhookDelivery({
+        webhookSubscriptionId: subscription.id,
+        status: "pending",
+        createdAt: subMinutes(now, 5),
+      });
+
+      const task = new DeliverWebhookTask();
+      await (task as any).checkAndDisableSubscription(subscription);
+
+      await subscription.reload();
+
+      // Should be disabled because failure rate among completed deliveries is 88.89% > 80%
+      expect(subscription.enabled).toBe(false);
+    });
+
+    it("should handle edge case where all deliveries are pending", async () => {
+      const now = new Date();
+
+      // Create 10 pending deliveries
+      for (let i = 0; i < 10; i++) {
+        await buildWebhookDelivery({
+          webhookSubscriptionId: subscription.id,
+          status: "pending",
+          createdAt: subMinutes(now, 10 + i * 5),
+        });
+      }
+
+      const task = new DeliverWebhookTask();
+      await (task as any).checkAndDisableSubscription(subscription);
+
+      await subscription.reload();
+
+      // Should not be disabled because there are no completed deliveries to analyze
+      expect(subscription.enabled).toBe(true);
+    });
   });
 });
