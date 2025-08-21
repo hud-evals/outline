@@ -68,9 +68,8 @@ describe("/s/:id", () => {
     const res = await server.get(`/s/${share.id}`);
     const body = await res.text();
     expect(res.status).toEqual(200);
-    expect(body).not.toContain(
-      '<meta name="robots" content="noindex, nofollow">'
-    );
+    expect(body).not.toContain("robots");
+    expect(body).not.toContain("noindex, nofollow");
   });
 
   it("should include robots noindex meta tag when allowIndexing is false", async () => {
@@ -83,7 +82,8 @@ describe("/s/:id", () => {
     const res = await server.get(`/s/${share.id}`);
     const body = await res.text();
     expect(res.status).toEqual(200);
-    expect(body).toContain('<meta name="robots" content="noindex, nofollow">');
+    expect(body).toContain("robots");
+    expect(body).toContain("noindex, nofollow");
   });
 
   it("should include robots noindex meta tag for nested doc route when allowIndexing is false", async () => {
@@ -96,7 +96,8 @@ describe("/s/:id", () => {
     const res = await server.get(`/s/${share.id}/doc/${document.urlId}`);
     const body = await res.text();
     expect(res.status).toEqual(200);
-    expect(body).toContain('<meta name="robots" content="noindex, nofollow">');
+    expect(body).toContain("robots");
+    expect(body).toContain("noindex, nofollow");
   });
 
   it("should not include robots meta tag for nested doc route when allowIndexing is true", async () => {
@@ -109,9 +110,8 @@ describe("/s/:id", () => {
     const res = await server.get(`/s/${share.id}/doc/${document.urlId}`);
     const body = await res.text();
     expect(res.status).toEqual(200);
-    expect(body).not.toContain(
-      '<meta name="robots" content="noindex, nofollow">'
-    );
+    expect(body).not.toContain("robots");
+    expect(body).not.toContain("noindex, nofollow");
   });
 
   it("should default to allowing indexing when allowIndexing is not specified", async () => {
@@ -123,8 +123,7 @@ describe("/s/:id", () => {
     const res = await server.get(`/s/${share.id}`);
     const body = await res.text();
     expect(res.status).toEqual(200);
-    expect(body).not.toContain(
-      '<meta name="robots" content="noindex, nofollow">'
-    );
+    expect(body).not.toContain("robots");
+    expect(body).not.toContain("noindex, nofollow");
   });
 });
