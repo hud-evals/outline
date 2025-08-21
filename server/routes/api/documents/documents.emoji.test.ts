@@ -21,19 +21,12 @@ describe("#documents.emoji", () => {
 
       // BASELINE: Should fail with 400 because emoji field doesn't exist in schema
       // MERGE COMMIT: Should succeed with 200 and return the emoji
-      if (res.status === 400) {
-        // Baseline behavior - API schema doesn't recognize emoji field
-        expect(body.message).toContain("emoji");
-        expect(body.message).toMatch(/unknown|unrecognized|invalid/i);
-      } else {
-        // Merge commit behavior - emoji field is supported
-        expect(res.status).toEqual(200);
-        expect(body.data.emoji).toBe("🚀");
+      expect(res.status).toEqual(200);
+      expect(body.data.emoji).toBe("🚀");
 
-        // Verify emoji is actually saved to database
-        const updated = await Document.findByPk(document.id);
-        expect(updated?.emoji).toBe("🚀");
-      }
+      // Verify emoji is actually saved to database
+      const updated = await Document.findByPk(document.id);
+      expect(updated?.emoji).toBe("🚀");
     });
 
     it("should support setting emoji to null", async () => {
@@ -51,12 +44,8 @@ describe("#documents.emoji", () => {
 
       // BASELINE: Should fail with 400 because emoji field doesn't exist
       // MERGE COMMIT: Should succeed with 200 and set emoji to null
-      if (res.status === 400) {
-        expect(body.message).toContain("emoji");
-      } else {
-        expect(res.status).toEqual(200);
-        expect(body.data.emoji).toBeNull();
-      }
+      expect(res.status).toEqual(200);
+      expect(body.data.emoji).toBeNull();
     });
 
     it("should validate emoji format properly", async () => {
@@ -74,15 +63,7 @@ describe("#documents.emoji", () => {
 
       // Both versions should return 400, but for different reasons
       expect(res.status).toEqual(400);
-
-      if (body.message.includes("Invalid") && body.message.includes("emoji")) {
-        // Merge commit: Proper emoji validation error
-        expect(body.message).toBe("emoji: Invalid");
-      } else {
-        // Baseline: Unknown field error
-        expect(body.message).toContain("emoji");
-        expect(body.message).toMatch(/unknown|unrecognized/i);
-      }
+      expect(body.message).toBe("emoji: Invalid");
     });
 
     it("should include emoji in document.info responses", async () => {
@@ -107,13 +88,7 @@ describe("#documents.emoji", () => {
 
       // BASELINE: emoji field should not exist in response
       // MERGE COMMIT: emoji field should be present and correct
-      if ("emoji" in body.data) {
-        // Merge commit behavior - emoji field exists in API response
-        expect(body.data.emoji).toBe("🔥");
-      } else {
-        // Baseline behavior - emoji field doesn't exist in model/response
-        expect(body.data.emoji).toBeUndefined();
-      }
+      expect(body.data.emoji).toBe("🔥");
     });
 
     it("should handle emoji in documents.list responses", async () => {
@@ -141,11 +116,7 @@ describe("#documents.emoji", () => {
 
       // BASELINE: emoji field won't exist in list responses
       // MERGE COMMIT: emoji field should be present
-      if ("emoji" in docWithEmoji) {
-        expect(docWithEmoji.emoji).toBe("⭐");
-      } else {
-        expect(docWithEmoji.emoji).toBeUndefined();
-      }
+      expect(docWithEmoji.emoji).toBe("⭐");
     });
 
     it("should support various emoji characters", async () => {
@@ -166,13 +137,8 @@ describe("#documents.emoji", () => {
 
         // BASELINE: All should fail with unknown field error
         // MERGE COMMIT: All should succeed
-        if (res.status === 400) {
-          expect(body.message).toContain("emoji");
-          break; // Don't test all emojis on baseline
-        } else {
-          expect(res.status).toEqual(200);
-          expect(body.data.emoji).toBe(emoji);
-        }
+        expect(res.status).toEqual(200);
+        expect(body.data.emoji).toBe(emoji);
       }
     });
 
@@ -188,20 +154,14 @@ describe("#documents.emoji", () => {
         },
       });
 
-      if (res.status === 200) {
-        // MERGE COMMIT: Check that emoji is actually stored in database
-        const updatedDoc = await Document.findByPk(document.id);
-        expect(updatedDoc?.emoji).toBe("🎯");
+      expect(res.status).toEqual(200);
+      // MERGE COMMIT: Check that emoji is actually stored in database
+      const updatedDoc = await Document.findByPk(document.id);
+      expect(updatedDoc?.emoji).toBe("🎯");
 
-        // Also check that emoji appears in toJSON serialization
-        const json = updatedDoc?.toJSON();
-        expect(json?.emoji).toBe("🎯");
-      } else {
-        // BASELINE: API call should fail, emoji field doesn't exist
-        expect(res.status).toEqual(400);
-        const body = await res.json();
-        expect(body.message).toContain("emoji");
-      }
+      // Also check that emoji appears in toJSON serialization
+      const json = updatedDoc?.toJSON();
+      expect(json?.emoji).toBe("🎯");
     });
   });
 });
