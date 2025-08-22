@@ -25,9 +25,18 @@ describe("app routes", () => {
       const body = await res.text();
 
       expect(res.status).toEqual(200);
-      expect(body).toContain('<div class="screenreader-only">');
-      expect(body).toContain("Test Document");
-      expect(body).toContain("This is test content for screenreaders");
+
+      // Extract the content inside the screenreader-only div
+      const screenreaderMatch = body.match(
+        /<div class="screenreader-only">([\s\S]*?)<\/div>/
+      );
+      expect(screenreaderMatch).toBeTruthy();
+
+      const screenreaderContent = screenreaderMatch![1];
+      expect(screenreaderContent).toContain("Test Document");
+      expect(screenreaderContent).toContain(
+        "This is test content for screenreaders"
+      );
     });
 
     it("should have empty screenreader content for unpublished shares", async () => {
