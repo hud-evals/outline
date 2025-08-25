@@ -158,6 +158,35 @@ describe("HTML to Markdown Conversion", () => {
       expect(markdown).toContain("| Data 1 | Data 2 |");
     });
 
+    it("should detect TH-only rows as headers even when not first child", () => {
+      const html = `
+        <table>
+          <tr>
+            <td>Some data row first</td>
+            <td>More data</td>
+          </tr>
+          <tr>
+            <th>Header 1</th>
+            <th>Header 2</th>
+          </tr>
+          <tr>
+            <td>Data 1</td>
+            <td>Data 2</td>
+          </tr>
+        </table>
+      `;
+
+      const markdown = turndownService.turndown(html);
+
+      // The second row has all TH elements, so it should be treated as a header
+      // and should generate a divider after it
+      const lines = markdown.trim().split("\n");
+
+      // Check that there are two divider lines (containing :---)
+      const dividerLines = lines.filter((line) => line.includes(":---"));
+      expect(dividerLines.length).toBe(2); // Should have 2 dividers with the fix
+    });
+
     it("should not treat mixed th/td rows as headers", () => {
       const html = `
         <table>
