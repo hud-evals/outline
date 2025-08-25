@@ -4,9 +4,6 @@ import { EditorState } from "prosemirror-state";
 import Storage from "../../../utils/Storage";
 import CodeFence from "../CodeFence";
 
-// Mock Storage module
-jest.mock("../../../utils/Storage");
-
 // Mock sonner toast
 jest.mock("sonner", () => ({
   toast: {
@@ -24,9 +21,11 @@ describe("CodeFence", () => {
     // Clear all mocks
     jest.clearAllMocks();
 
-    // Mock Storage.get to return undefined by default
-    (Storage.get as jest.Mock).mockReturnValue(undefined);
-    (Storage.set as jest.Mock).mockImplementation(() => {});
+    // Spy on Storage methods
+    jest.spyOn(Storage, "get").mockImplementation(
+      (key, defaultValue) => defaultValue // Return the default when key doesn't exist
+    );
+    jest.spyOn(Storage, "set").mockImplementation(() => {});
 
     // Mock dictionary
     mockDictionary = {
@@ -107,11 +106,11 @@ describe("CodeFence", () => {
 
       it("should use recent language when creating a code block without specifying language", () => {
         // Mock Storage to return a recent language
-        (Storage.get as jest.Mock).mockImplementation((key) => {
+        jest.spyOn(Storage, "get").mockImplementation((key, defaultValue) => {
           if (key === "rme-code-language") {
             return "rust";
           }
-          return undefined;
+          return defaultValue;
         });
 
         const commands = codeFence.commands({
@@ -129,12 +128,17 @@ describe("CodeFence", () => {
         // The toggleBlockType should be called with the recent language
         // We can't directly test this without mocking toggleBlockType,
         // but we can verify Storage.get was called
-        expect(Storage.get).toHaveBeenCalledWith("rme-code-language");
+        expect(Storage.get).toHaveBeenCalledWith(
+          "rme-code-language",
+          expect.anything()
+        );
       });
 
       it("should use default language when no recent language exists", () => {
         // Mock Storage to return undefined for recent language
-        (Storage.get as jest.Mock).mockReturnValue(undefined);
+        jest
+          .spyOn(Storage, "get")
+          .mockImplementation((key, defaultValue) => defaultValue);
 
         // Create a test document with a paragraph
         const doc = testSchema.nodes.doc.create(null, [
@@ -156,7 +160,10 @@ describe("CodeFence", () => {
         command(state, dispatch);
 
         // Should have checked for recent language
-        expect(Storage.get).toHaveBeenCalledWith("rme-code-language");
+        expect(Storage.get).toHaveBeenCalledWith(
+          "rme-code-language",
+          expect.anything()
+        );
 
         // When no recent language exists, it should create a code block with DEFAULT_LANGUAGE
         // Check that dispatch was called with a transaction
@@ -173,11 +180,11 @@ describe("CodeFence", () => {
 
       it("should override saved language when explicit language is provided", () => {
         // Mock Storage to return a recent language
-        (Storage.get as jest.Mock).mockImplementation((key) => {
+        jest.spyOn(Storage, "get").mockImplementation((key, defaultValue) => {
           if (key === "rme-code-language") {
             return "python";
           }
-          return undefined;
+          return defaultValue;
         });
 
         const commands = codeFence.commands({
@@ -202,8 +209,12 @@ describe("CodeFence", () => {
     it("should track language frequency when setting recent language", () => {
       // Setup Storage mock to track the data
       const storageData: Record<string, any> = {};
-      (Storage.get as jest.Mock).mockImplementation((key) => storageData[key]);
-      (Storage.set as jest.Mock).mockImplementation((key, value) => {
+      jest
+        .spyOn(Storage, "get")
+        .mockImplementation(
+          (key, defaultValue) => storageData[key] ?? defaultValue
+        );
+      jest.spyOn(Storage, "set").mockImplementation((key, value) => {
         storageData[key] = value;
       });
 

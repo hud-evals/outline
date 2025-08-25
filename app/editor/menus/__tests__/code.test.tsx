@@ -1,9 +1,6 @@
 import Storage from "@shared/utils/Storage";
 import codeMenuItems from "../code";
 
-// Mock Storage module
-jest.mock("@shared/utils/Storage");
-
 describe("codeMenuItems", () => {
   let mockDictionary: any;
   let mockEditorState: any;
@@ -13,8 +10,10 @@ describe("codeMenuItems", () => {
     // Clear all mocks
     jest.clearAllMocks();
 
-    // Mock Storage.get to return empty data by default
-    (Storage.get as jest.Mock).mockReturnValue(undefined);
+    // Spy on Storage methods
+    jest.spyOn(Storage, "get").mockImplementation(
+      (key, defaultValue) => defaultValue // Return the default when key doesn't exist
+    );
 
     // Mock dictionary
     mockDictionary = {
@@ -152,7 +151,7 @@ describe("codeMenuItems", () => {
   describe("frequent languages", () => {
     beforeEach(() => {
       // Mock Storage to return frequently used languages
-      (Storage.get as jest.Mock).mockImplementation((key) => {
+      jest.spyOn(Storage, "get").mockImplementation((key, defaultValue) => {
         if (key === "frequent-code-languages") {
           return {
             python: 10,
@@ -168,7 +167,7 @@ describe("codeMenuItems", () => {
         if (key === "rme-code-language") {
           return "python"; // Most recent language
         }
-        return undefined;
+        return defaultValue;
       });
     });
 
@@ -224,7 +223,9 @@ describe("codeMenuItems", () => {
 
     it("should show all languages when no frequent languages exist", () => {
       // Mock Storage to return no frequent languages
-      (Storage.get as jest.Mock).mockReturnValue(undefined);
+      jest
+        .spyOn(Storage, "get")
+        .mockImplementation((key, defaultValue) => defaultValue);
 
       const items = codeMenuItems(mockEditorState, false, mockDictionary);
       const codeBlock = items.find(
@@ -248,7 +249,7 @@ describe("codeMenuItems", () => {
 
     it("should include recently used language even if not in top frequent", () => {
       // Mock Storage to include Ruby as recent but not in top frequent
-      (Storage.get as jest.Mock).mockImplementation((key) => {
+      jest.spyOn(Storage, "get").mockImplementation((key, defaultValue) => {
         if (key === "frequent-code-languages") {
           return {
             python: 10,
@@ -263,7 +264,7 @@ describe("codeMenuItems", () => {
         if (key === "rme-code-language") {
           return "ruby"; // Ruby is the most recent language
         }
-        return undefined;
+        return defaultValue;
       });
 
       const items = codeMenuItems(mockEditorState, false, mockDictionary);
