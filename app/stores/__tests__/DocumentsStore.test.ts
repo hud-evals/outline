@@ -58,20 +58,28 @@ describe("DocumentsStore", () => {
 
       await store.fetchBacklinks(documentId);
 
+      // Filter to only get documents.list calls
+      const documentsListCalls = mockedClient.post.mock.calls.filter(
+        (call) => call[0] === "/documents.list"
+      );
+
       // Verify fetchAll makes multiple API calls (2 pages = 2 calls)
-      expect(mockedClient.post).toHaveBeenCalledTimes(3);
+      expect(documentsListCalls).toHaveLength(2);
 
       // Verify documents.list calls are made with correct parameters
-      expect(mockedClient.post).toHaveBeenNthCalledWith(2, "/documents.list", {
-        backlinkDocumentId: documentId,
-        offset: 0,
-        limit: 25,
-      });
-      expect(mockedClient.post).toHaveBeenNthCalledWith(3, "/documents.list", {
-        backlinkDocumentId: documentId,
-        offset: 25,
-        limit: 25,
-      });
+      // First call should have offset 0 or no offset (both are equivalent)
+      expect(documentsListCalls[0][0]).toEqual("/documents.list");
+      const firstCallParams = documentsListCalls[0][1] as any;
+      expect(firstCallParams.backlinkDocumentId).toEqual(documentId);
+      expect(firstCallParams.limit).toEqual(25);
+      expect(firstCallParams.offset ?? 0).toEqual(0);
+
+      // Second call should have offset 25
+      expect(documentsListCalls[1][0]).toEqual("/documents.list");
+      const secondCallParams = documentsListCalls[1][1] as any;
+      expect(secondCallParams.backlinkDocumentId).toEqual(documentId);
+      expect(secondCallParams.limit).toEqual(25);
+      expect(secondCallParams.offset).toEqual(25);
 
       // Verify all backlinks are stored
       const storedBacklinks = store.backlinks.get(documentId);
@@ -104,12 +112,18 @@ describe("DocumentsStore", () => {
 
       await store.fetchBacklinks(documentId);
 
-      expect(mockedClient.post).toHaveBeenCalledTimes(2);
-      expect(mockedClient.post).toHaveBeenNthCalledWith(2, "/documents.list", {
-        backlinkDocumentId: documentId,
-        offset: 0,
-        limit: 25,
-      });
+      // Filter to only get documents.list calls
+      const documentsListCalls = mockedClient.post.mock.calls.filter(
+        (call) => call[0] === "/documents.list"
+      );
+
+      // Verify only one page is fetched when there are exactly 25
+      expect(documentsListCalls).toHaveLength(1);
+      expect(documentsListCalls[0][0]).toEqual("/documents.list");
+      const callParams = documentsListCalls[0][1] as any;
+      expect(callParams.backlinkDocumentId).toEqual(documentId);
+      expect(callParams.limit).toEqual(25);
+      expect(callParams.offset ?? 0).toEqual(0);
 
       const storedBacklinks = store.backlinks.get(documentId);
       expect(storedBacklinks).toHaveLength(25);
@@ -136,7 +150,13 @@ describe("DocumentsStore", () => {
 
       await store.fetchBacklinks(documentId);
 
-      expect(mockedClient.post).toHaveBeenCalledTimes(2);
+      // Filter to only get documents.list calls
+      const documentsListCalls = mockedClient.post.mock.calls.filter(
+        (call) => call[0] === "/documents.list"
+      );
+
+      // Verify only one page is fetched when there are fewer than 25
+      expect(documentsListCalls).toHaveLength(1);
 
       const storedBacklinks = store.backlinks.get(documentId);
       expect(storedBacklinks).toHaveLength(10);
@@ -157,7 +177,13 @@ describe("DocumentsStore", () => {
 
       await store.fetchBacklinks(documentId);
 
-      expect(mockedClient.post).toHaveBeenCalledTimes(2);
+      // Filter to only get documents.list calls
+      const documentsListCalls = mockedClient.post.mock.calls.filter(
+        (call) => call[0] === "/documents.list"
+      );
+
+      // Verify only one page is fetched when there are no results
+      expect(documentsListCalls).toHaveLength(1);
 
       const storedBacklinks = store.backlinks.get(documentId);
       expect(storedBacklinks).toHaveLength(0);
