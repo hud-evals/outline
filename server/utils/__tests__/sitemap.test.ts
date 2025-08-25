@@ -236,9 +236,11 @@ describe("navigationNodeToSitemap", () => {
       const result = navigationNodeToSitemap(node, baseUrl);
 
       // Just check that URLs have loc and changefreq elements (order doesn't matter)
-      expect(result).toMatch(
-        /<url[^>]*>.*<loc>.*<\/loc>.*<changefreq>\w+<\/changefreq>.*<\/url>/
-      );
+      const locMatches = result.match(/<loc>[^<]+<\/loc>/g);
+      expect(locMatches).toHaveLength(1);
+
+      const changefreqMatches = result.match(/<changefreq>\w+<\/changefreq>/g);
+      expect(changefreqMatches).toHaveLength(1);
     });
   });
 });
