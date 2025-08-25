@@ -128,10 +128,10 @@ describe("CodeFence", () => {
         // The toggleBlockType should be called with the recent language
         // We can't directly test this without mocking toggleBlockType,
         // but we can verify Storage.get was called
-        expect(Storage.get).toHaveBeenCalledWith(
-          "rme-code-language",
-          expect.anything()
-        );
+        expect(Storage.get).toHaveBeenCalled();
+        expect(
+          Storage.get.mock.calls.some((call) => call[0] === "rme-code-language")
+        ).toBe(true);
       });
 
       it("should use default language when no recent language exists", () => {
@@ -160,10 +160,10 @@ describe("CodeFence", () => {
         command(state, dispatch);
 
         // Should have checked for recent language
-        expect(Storage.get).toHaveBeenCalledWith(
-          "rme-code-language",
-          expect.anything()
-        );
+        expect(Storage.get).toHaveBeenCalled();
+        expect(
+          Storage.get.mock.calls.some((call) => call[0] === "rme-code-language")
+        ).toBe(true);
 
         // When no recent language exists, it should create a code block with DEFAULT_LANGUAGE
         // Check that dispatch was called with a transaction
