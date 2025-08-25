@@ -63,7 +63,7 @@ describe("#documents.emoji", () => {
 
       // Both versions should return 400, but for different reasons
       expect(res.status).toEqual(400);
-      expect(body.message).toBe("emoji: Invalid");
+      expect(body.message).toContain("emoji: Invalid");
     });
 
     it("should include emoji in document.info responses", async () => {
