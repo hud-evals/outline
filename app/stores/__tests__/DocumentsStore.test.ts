@@ -62,15 +62,15 @@ describe("DocumentsStore", () => {
       expect(mockedClient.post).toHaveBeenCalledTimes(3);
 
       // Verify documents.list calls are made with correct parameters
-      expect(mockedClient.post).toHaveBeenCalledWith("/documents.list", {
+      expect(mockedClient.post).toHaveBeenNthCalledWith(2, "/documents.list", {
         backlinkDocumentId: documentId,
+        offset: 0,
         limit: 25,
       });
-
-      expect(mockedClient.post).toHaveBeenCalledWith("/documents.list", {
+      expect(mockedClient.post).toHaveBeenNthCalledWith(3, "/documents.list", {
         backlinkDocumentId: documentId,
-        limit: 25,
         offset: 25,
+        limit: 25,
       });
 
       // Verify all backlinks are stored
@@ -105,8 +105,9 @@ describe("DocumentsStore", () => {
       await store.fetchBacklinks(documentId);
 
       expect(mockedClient.post).toHaveBeenCalledTimes(2);
-      expect(mockedClient.post).toHaveBeenCalledWith("/documents.list", {
+      expect(mockedClient.post).toHaveBeenNthCalledWith(2, "/documents.list", {
         backlinkDocumentId: documentId,
+        offset: 0,
         limit: 25,
       });
 
