@@ -38,32 +38,42 @@ describe("PR #9229: Collection restore index collision fix", () => {
     expect(body.data.index).not.toBe("P");
   });
 
-  it("should handle restoration without breaking existing collections", async () => {
+  it("should properly resolve collision via beforeUpdate hook on restore", async () => {
     const admin = await buildAdmin();
 
-    // Create multiple collections with different indices
-    const collections = await Promise.all([
-      buildCollection({ teamId: admin.teamId, index: "A" }),
-      buildCollection({ teamId: admin.teamId, index: "B" }),
-      buildCollection({
-        teamId: admin.teamId,
-        index: "C",
-        archivedAt: new Date(),
-      }),
-    ]);
+    // Create an active collection with index "P"
+    const activeCollection = await buildCollection({
+      teamId: admin.teamId,
+    });
+    await activeCollection.update({ index: "P" }, { hooks: false });
 
-    const [activeA, activeB, archivedC] = collections;
+    // Create an archived collection also with index "P" (simulating pre-fix state)
+    const archivedCollection = await buildCollection({
+      teamId: admin.teamId,
+      archivedAt: new Date(),
+      archivedById: admin.id,
+    });
+    await archivedCollection.update({ index: "P" }, { hooks: false });
 
-    // Restore archived collection should not conflict with active ones
-    archivedC.archivedAt = null;
-    await archivedC.save();
+    // Both should have the same index initially
+    expect(activeCollection.index).toBe("P");
+    expect(archivedCollection.index).toBe("P");
 
-    // All collections should have unique indices
-    const allIndices = [activeA.index, activeB.index, archivedC.index];
-    const uniqueIndices = new Set(allIndices);
+    // Now restore the archived collection using the actual restore mechanism
+    // This should trigger the beforeUpdate hook with the fix
+    await archivedCollection.update({ archivedAt: null });
+    await archivedCollection.reload();
 
-    expect(uniqueIndices.size).toBe(allIndices.length);
-    expect(archivedC.index).not.toBe("A");
-    expect(archivedC.index).not.toBe("B");
+    // The restored collection should have a different index due to collision resolution
+    expect(archivedCollection.index).not.toBe("P");
+    expect(archivedCollection.archivedAt).toBe(null);
+
+    // The new index should be between "P" and the next index (fractional indexing)
+    // Since there's no next collection, it should be greater than "P"
+    expect(archivedCollection.index > "P").toBe(true);
+
+    // Verify the active collection's index hasn't changed
+    await activeCollection.reload();
+    expect(activeCollection.index).toBe("P");
   });
 });
