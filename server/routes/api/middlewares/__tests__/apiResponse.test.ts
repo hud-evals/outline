@@ -1,4 +1,5 @@
 import stream from "stream";
+import JSZip from "jszip";
 import { Context } from "koa";
 import { Readable } from "readable-stream";
 import apiResponse from "../apiResponse";
@@ -66,19 +67,20 @@ describe("apiResponse middleware", () => {
     });
 
     // Main test
-    it("should not wrap objects with _readableState property (JSZip streams)", async () => {
-      const jsZipLikeStream = {
-        _readableState: {},
-        pipe: jest.fn(),
-        on: jest.fn(),
-        read: jest.fn(),
-      };
-      ctx.body = jsZipLikeStream;
+    it("should not wrap JSZip streams", async () => {
+      const zip = new JSZip();
+      zip.file("hello.txt", "Hello World\n");
+      ctx.body = zip.generateNodeStream();
       ctx.status = 200;
 
       await middleware(ctx as Context, next);
 
-      expect(ctx.body).toBe(jsZipLikeStream);
+      expect(ctx.body).toBeInstanceOf(zip.generateNodeStream().constructor);
+      expect(ctx.body).toHaveProperty("pipe");
+      expect(ctx.body).toHaveProperty("on");
+      expect(ctx.body).toHaveProperty("readable");
+      expect(ctx.body).toHaveProperty("_helper");
+      expect(ctx.body).toHaveProperty("_readableState");
       expect(ctx.body).not.toHaveProperty("status");
       expect(ctx.body).not.toHaveProperty("ok");
       expect(next).toHaveBeenCalledTimes(1);
