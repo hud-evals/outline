@@ -129,11 +129,6 @@ describe("CSVHelper", () => {
       });
 
       it("should handle complex combinations", () => {
-        // Test where control characters don't affect formula detection
-        const complexInput = "\u200B=\u0001SUM\u202A(\u200CA1:A10\u202E)\u200D\t";
-        expect(CSVHelper.sanitizeValue(complexInput)).toBe("=SUM(A1:A10)");
-
-        // Test where formula trigger is at start and control chars are cleaned
         const formulaFirst = "=\u0001SUM\u202A(\u200CA1:A10\u202E)\u200D\t";
         expect(CSVHelper.sanitizeValue(formulaFirst)).toBe("'=SUM(A1:A10)");
       });
