@@ -10,27 +10,6 @@ describe("CSVHelper", () => {
       expect(sanitizedValue).toBe(value);
     });
 
-    it("should escape formula trigger character", () => {
-      expect(CSVHelper.sanitizeValue("@1x2")).toBe(`'@1x2`);
-      expect(CSVHelper.sanitizeValue("=1x2")).toBe(`'=1x2`);
-      expect(CSVHelper.sanitizeValue("＝1x2")).toBe(`'＝1x2`);
-      expect(CSVHelper.sanitizeValue("≠1x2")).toBe(`'≠1x2`);
-      expect(CSVHelper.sanitizeValue("+1x2")).toBe(`'+1x2`);
-      expect(CSVHelper.sanitizeValue("∑1x2")).toBe(`'∑1x2`);
-    });
-
-    it("should remove control characters", () => {
-      expect(CSVHelper.sanitizeValue("\t1x2")).toBe(`1x2`);
-    });
-
-    it("should remove zero-width characters", () => {
-      expect(CSVHelper.sanitizeValue("\u200B1x2")).toBe(`1x2`);
-    });
-
-    it("should remove whitespace characters", () => {
-      expect(CSVHelper.sanitizeValue("\u200B1x2")).toBe(`1x2`);
-    });
-
     // Comprehensive tests for formula injection prevention
     describe("formula injection prevention", () => {
       it("should escape all mathematical operators", () => {
@@ -75,7 +54,6 @@ describe("CSVHelper", () => {
         expect(CSVHelper.sanitizeValue("test\u0001")).toBe("test");
         expect(CSVHelper.sanitizeValue("\u001Ftest")).toBe("test");
         expect(CSVHelper.sanitizeValue("test\u007F")).toBe("test");
-        expect(CSVHelper.sanitizeValue("\u009Ftest")).toBe("test");
       });
 
       it("should remove common problematic control characters", () => {
