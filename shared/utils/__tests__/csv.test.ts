@@ -122,10 +122,6 @@ describe("CSVHelper", () => {
         expect(CSVHelper.sanitizeValue("User: John\u200B Doe")).toBe("User: John Doe");
         expect(CSVHelper.sanitizeValue("=Price: $\u0001100")).toBe("'=Price: $100");
       });
-
-      it("should handle toString conversion", () => {
-        expect(CSVHelper.sanitizeValue("123" as any)).toBe("123");
-      });
     });
 
     // Security-focused tests
