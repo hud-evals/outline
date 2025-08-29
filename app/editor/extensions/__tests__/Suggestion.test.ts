@@ -38,7 +38,7 @@ describe("Suggestion - Mention Search Fix", () => {
     });
   });
 
-  it("should match usernames with em-dashes", () => {
+  it("should match usernames with en-dashes", () => {
     const testInputs = [
       "@john–doe",
       "@mary–jane",
