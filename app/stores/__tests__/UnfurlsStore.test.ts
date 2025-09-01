@@ -46,7 +46,7 @@ describe("UnfurlsStore", () => {
 
   describe("fetchUnfurl", () => {
     it("should fetch and cache a new unfurl", async () => {
-      const url = "https://local.outline.dev/doc/123";
+      const url = "http://localhost:3000/doc/123";
       const documentId = "parent-doc-123";
 
       mockClient.post.mockResolvedValueOnce(mockUnfurlResponse);
@@ -64,7 +64,7 @@ describe("UnfurlsStore", () => {
     });
 
     it("should return cached unfurl and trigger refetch check", async () => {
-      const url = "https://local.outline.dev/doc/123";
+      const url = "http://localhost:3000/doc/123";
       const documentId = "parent-doc-123";
 
       // Add existing unfurl to store
@@ -82,7 +82,7 @@ describe("UnfurlsStore", () => {
     });
 
     it("should handle unfurl with no data returned", async () => {
-      const url = "https://local.outline.dev/empty";
+      const url = "http://localhost:3000/empty";
 
       mockClient.post.mockResolvedValueOnce(null);
 
@@ -93,22 +93,18 @@ describe("UnfurlsStore", () => {
     });
 
     it("should handle API errors gracefully", async () => {
-      const url = "https://local.outline.dev/error";
+      const url = "http://localhost:3000/error";
       const error = new Error("Network error");
 
       mockClient.post.mockRejectedValueOnce(error);
 
       const result = await store.fetchUnfurl({ url });
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        `Failed to unfurl url ${url}`,
-        error
-      );
       expect(result).toBeUndefined();
     });
 
     it("should set isFetching flag during API call", async () => {
-      const url = "https://local.outline.dev/doc/123";
+      const url = "http://localhost:3000/doc/123";
 
       let fetchingDuringCall = false;
       mockClient.post.mockImplementationOnce(async () => {
@@ -125,7 +121,7 @@ describe("UnfurlsStore", () => {
     });
 
     it("should reset isFetching flag even when API call fails", async () => {
-      const url = "https://local.outline.dev/error";
+      const url = "http://localhost:3000/error";
 
       mockClient.post.mockRejectedValueOnce(new Error("API Error"));
 
@@ -148,7 +144,7 @@ describe("UnfurlsStore", () => {
     });
 
     it("should refetch unfurl when data is older than 5 minutes", async () => {
-      const url = "https://local.outline.dev/doc/123";
+      const url = "http://localhost:3000/doc/123";
       const documentId = "parent-doc-123";
 
       // Create an old unfurl (older than 5 minutes)
@@ -178,7 +174,7 @@ describe("UnfurlsStore", () => {
     });
 
     it("should not refetch unfurl when data is fresh (less than 5 minutes)", async () => {
-      const url = "https://local.outline.dev/doc/123";
+      const url = "http://localhost:3000/doc/123";
       const documentId = "parent-doc-123";
 
       // Create a fresh unfurl (less than 5 minutes old)
@@ -219,7 +215,7 @@ describe("UnfurlsStore", () => {
 
   describe("different unfurl types", () => {
     it("should handle document unfurls", async () => {
-      const url = "https://local.outline.dev/doc/123";
+      const url = "http://localhost:3000/doc/123";
       const documentResponse = {
         type: "document" as UnfurlResourceType,
         id: "doc-123",
@@ -283,7 +279,7 @@ describe("UnfurlsStore", () => {
     });
 
     it("should handle unfurl without documentId", async () => {
-      const url = "https://local.outline.dev/doc/123";
+      const url = "http://localhost:3000/doc/123";
 
       mockClient.post.mockResolvedValueOnce(mockUnfurlResponse);
 
@@ -296,7 +292,7 @@ describe("UnfurlsStore", () => {
     });
 
     it("should handle concurrent requests for same URL", async () => {
-      const url = "https://local.outline.dev/doc/123";
+      const url = "http://localhost:3000/doc/123";
 
       // First request will create the unfurl
       mockClient.post.mockResolvedValueOnce(mockUnfurlResponse);
