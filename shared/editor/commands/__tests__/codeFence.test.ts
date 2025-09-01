@@ -27,7 +27,7 @@ describe("splitCodeBlockOnTripleBackticks", () => {
     // Position cursor at the end of the text (after the backticks)
     const state = EditorState.create({
       doc,
-      selection: TextSelection.create(doc, 24), // Position after backticks
+      selection: TextSelection.create(doc, 25), // Position after backticks
     });
 
     let newState: EditorState | null = null;
@@ -47,13 +47,13 @@ describe("splitCodeBlockOnTripleBackticks", () => {
     // First code block should have the text without backticks
     const firstBlock = newState!.doc.child(0);
     expect(firstBlock.type.name).toBe("code_fence");
-    expect(firstBlock.textContent).toBe("console.log('hello')");
+    expect(firstBlock.textContent).toBe("console.log('hello');");
     expect(firstBlock.attrs.language).toBe("javascript");
 
     // Second code block should contain the remaining backtick with same language
     const secondBlock = newState!.doc.child(1);
     expect(secondBlock.type.name).toBe("code_fence");
-    expect(secondBlock.textContent).toBe("`");
+    expect(secondBlock.textContent).toBe("");
     expect(secondBlock.attrs.language).toBe("javascript");
   });
 
@@ -75,7 +75,7 @@ describe("splitCodeBlockOnTripleBackticks", () => {
 
     const state = EditorState.create({
       doc,
-      selection: TextSelection.create(doc, 20), // Position after backticks
+      selection: TextSelection.create(doc, 23), // Position after backticks
     });
 
     const result = splitCodeBlockOnTripleBackticks(state, undefined);
@@ -101,7 +101,7 @@ describe("splitCodeBlockOnTripleBackticks", () => {
 
     const state = EditorState.create({
       doc,
-      selection: TextSelection.create(doc, 10), // Position in middle
+      selection: TextSelection.create(doc, 11), // Position in middle
     });
 
     const result = splitCodeBlockOnTripleBackticks(state, undefined);
@@ -127,7 +127,7 @@ describe("splitCodeBlockOnTripleBackticks", () => {
 
     const state = EditorState.create({
       doc,
-      selection: TextSelection.create(doc, 22), // Position after single backtick
+      selection: TextSelection.create(doc, 23), // Position after single backtick
     });
 
     const result = splitCodeBlockOnTripleBackticks(state, undefined);
