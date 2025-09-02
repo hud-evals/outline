@@ -108,6 +108,7 @@ describe("PasteHandler", () => {
       replaceSelectionWith: jest.fn().mockReturnThis(),
       replaceSelection: jest.fn().mockReturnThis(),
       insert: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
       scrollIntoView: jest.fn().mockReturnThis(),
       setMeta: jest.fn().mockReturnThis(),
     };
