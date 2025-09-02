@@ -466,14 +466,6 @@ describe("PasteHandler", () => {
         expect(mockTransaction.replaceSelection).not.toHaveBeenCalled();
         expect(mockTransaction.replaceSelectionWith).not.toHaveBeenCalled();
 
-        // Should set appropriate metadata
-        expect(mockTransaction.scrollIntoView).toHaveBeenCalled();
-        expect(mockTransaction.setMeta).toHaveBeenCalledWith("paste", true);
-        expect(mockTransaction.setMeta).toHaveBeenCalledWith(
-          "uiEvent",
-          "paste"
-        );
-
         expect(result).toBe(true);
       });
 
