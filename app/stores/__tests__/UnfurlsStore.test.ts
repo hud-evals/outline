@@ -2,6 +2,11 @@
  * @jest-environment jsdom
  */
 /* eslint-disable */
+// Provide a safe test env to avoid env.ts throwing during module load
+jest.mock("~/env", () => ({
+  __esModule: true,
+  default: { ENVIRONMENT: "test", URL: "http://localhost:3000" },
+}));
 import { subMinutes } from "date-fns";
 import { UnfurlResourceType } from "@shared/types";
 import UnfurlsStore from "../UnfurlsStore";
@@ -10,10 +15,20 @@ import { client } from "~/utils/ApiClient";
 import Logger from "~/utils/Logger";
 
 // Mock dependencies
-jest.mock("~/utils/ApiClient");
-jest.mock("~/utils/Logger");
+jest.mock("~/utils/ApiClient", () => ({
+  __esModule: true,
+  client: { post: jest.fn() },
+}));
+jest.mock("~/utils/Logger", () => ({
+  __esModule: true,
+  default: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
+}));
 jest.mock("date-fns", () => ({
-  subMinutes: jest.fn(),
+  subMinutes: jest.fn((date: Date, minutes: number) => {
+    const d = new Date(date);
+    d.setMinutes(d.getMinutes() - minutes);
+    return d;
+  }),
 }));
 
 const mockClient = client as jest.Mocked<typeof client>;
