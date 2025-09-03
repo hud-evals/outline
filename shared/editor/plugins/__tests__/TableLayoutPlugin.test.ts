@@ -72,8 +72,17 @@ describe("TableLayoutPlugin", () => {
 
   describe("Layout change detection", () => {
     it("should detect when layout changes from null to fullWidth", () => {
-      const initialDoc = createTableDoc();
-      const changedDoc = createTableDoc({ layout: TableLayout.fullWidth });
+      const initialDoc = createTableWithColwidth({}, [
+        [{}, { colwidth: [100] }],
+        [{}, { colwidth: [120] }],
+      ]);
+      const changedDoc = createTableWithColwidth(
+        { layout: TableLayout.fullWidth },
+        [
+          [{}, { colwidth: [100] }],
+          [{}, { colwidth: [120] }],
+        ]
+      );
 
       const oldState = EditorState.create({
         doc: initialDoc,
@@ -97,11 +106,38 @@ describe("TableLayoutPlugin", () => {
       );
 
       expect(result).toBeTruthy();
+      const finalDoc = newState.apply(result).doc;
+      const tableNode = finalDoc.firstChild!;
+      const map = TableMap.get(tableNode);
+
+      // Verify the layout is fullWidth
+      expect(tableNode.attrs.layout).toBe(TableLayout.fullWidth);
+
+      // Verify colwidth was removed from last column cells
+      const lastColumnCells = [];
+      for (let row = 0; row < map.height; row++) {
+        const cellPos = map.map[row * map.width + (map.width - 1)];
+        const cell = tableNode.nodeAt(cellPos);
+        lastColumnCells.push(cell);
+      }
+
+      lastColumnCells.forEach((cell) => {
+        expect(cell?.attrs.colwidth).toBeFalsy();
+      });
     });
 
     it("should detect when layout changes from fullWidth to null", () => {
-      const initialDoc = createTableDoc({ layout: TableLayout.fullWidth });
-      const changedDoc = createTableDoc();
+      const initialDoc = createTableWithColwidth(
+        { layout: TableLayout.fullWidth },
+        [
+          [{}, { colwidth: [100] }],
+          [{}, { colwidth: [120] }],
+        ]
+      );
+      const changedDoc = createTableWithColwidth({}, [
+        [{}, { colwidth: [100] }],
+        [{}, { colwidth: [120] }],
+      ]);
 
       const oldState = EditorState.create({
         doc: initialDoc,
@@ -125,10 +161,31 @@ describe("TableLayoutPlugin", () => {
       );
 
       expect(result).toBeTruthy();
+      const finalDoc = newState.apply(result).doc;
+      const tableNode = finalDoc.firstChild!;
+      const map = TableMap.get(tableNode);
+
+      // Verify the layout is no longer fullWidth
+      expect(tableNode.attrs.layout).toBeFalsy();
+
+      // Verify colwidth was removed from last column cells
+      const lastColumnCells = [];
+      for (let row = 0; row < map.height; row++) {
+        const cellPos = map.map[row * map.width + (map.width - 1)];
+        const cell = tableNode.nodeAt(cellPos);
+        lastColumnCells.push(cell);
+      }
+
+      lastColumnCells.forEach((cell) => {
+        expect(cell?.attrs.colwidth).toBeFalsy();
+      });
     });
 
     it("should not trigger when layout doesn't change", () => {
-      const testDoc = createTableDoc();
+      const testDoc = createTableWithColwidth({}, [
+        [{}, { colwidth: [100] }],
+        [{}, { colwidth: [120] }],
+      ]);
 
       const oldState = EditorState.create({
         doc: testDoc,
@@ -150,6 +207,17 @@ describe("TableLayoutPlugin", () => {
       );
 
       expect(result).toBeUndefined();
+
+      // Verify colwidth attributes remain unchanged
+      const tableNode = newState.doc.firstChild!;
+      const map = TableMap.get(tableNode);
+
+      // Check that last column cells still have their colwidth
+      for (let row = 0; row < map.height; row++) {
+        const cellPos = map.map[row * map.width + (map.width - 1)];
+        const cell = tableNode.nodeAt(cellPos);
+        expect(cell?.attrs.colwidth).toBeTruthy();
+      }
     });
   });
 
@@ -189,14 +257,39 @@ describe("TableLayoutPlugin", () => {
       );
 
       expect(result).toBeTruthy();
-      if (result) {
-        const finalDoc = newState.apply(result).doc;
-        const tableNode = finalDoc.firstChild!;
-        const map = TableMap.get(tableNode);
+      const finalDoc = newState.apply(result).doc;
+      const tableNode = finalDoc.firstChild!;
+      const map = TableMap.get(tableNode);
 
-        // In a 2x2 table, the last column should have colwidth removed
-        expect(map.width).toBe(2);
+      // Verify table layout is fullWidth
+      expect(tableNode.attrs.layout).toBe(TableLayout.fullWidth);
+      expect(map.width).toBe(2);
+
+      // Verify colwidth was removed from last column cells
+      const lastColumnCells = [];
+      for (let row = 0; row < map.height; row++) {
+        const cellPos = map.map[row * map.width + (map.width - 1)];
+        const cell = tableNode.nodeAt(cellPos);
+        lastColumnCells.push(cell);
       }
+
+      lastColumnCells.forEach((cell) => {
+        expect(cell?.attrs.colwidth).toBeFalsy();
+      });
+
+      // Verify first column cells still have colwidth
+      const firstColumnCells = [];
+      for (let row = 0; row < map.height; row++) {
+        const cellPos = map.map[row * map.width + 0];
+        const cell = tableNode.nodeAt(cellPos);
+        firstColumnCells.push(cell);
+      }
+
+      firstColumnCells.forEach((cell) => {
+        // First column should keep colwidth if it had one originally
+        // In this test, first column cells have empty attrs {}
+        expect(cell?.attrs.colwidth).toBeFalsy();
+      });
     });
 
     it("should handle tables with different dimensions", () => {
@@ -235,6 +328,32 @@ describe("TableLayoutPlugin", () => {
       );
 
       expect(result).toBeTruthy();
+      const finalDoc = newState.apply(result).doc;
+      const tableNode = finalDoc.firstChild!;
+      const map = TableMap.get(tableNode);
+
+      // Verify table layout is fullWidth
+      expect(tableNode.attrs.layout).toBe(TableLayout.fullWidth);
+      expect(map.width).toBe(3);
+
+      // Verify colwidth was removed from last column cells only
+      for (let row = 0; row < map.height; row++) {
+        for (let col = 0; col < map.width; col++) {
+          const cellPos = map.map[row * map.width + col];
+          const cell = tableNode.nodeAt(cellPos);
+
+          if (col === map.width - 1) {
+            // Last column should have colwidth removed
+            expect(cell?.attrs.colwidth).toBeFalsy();
+          } else {
+            // Other columns should retain colwidth if they had it
+            const originalCell = cellAttrs[row][col];
+            if (originalCell.colwidth) {
+              expect(cell?.attrs.colwidth).toBeTruthy();
+            }
+          }
+        }
+      }
     });
   });
 
@@ -270,6 +389,18 @@ describe("TableLayoutPlugin", () => {
       );
 
       expect(result).toBeTruthy();
+      const finalDoc = newState.apply(result).doc;
+      const tableNode = finalDoc.firstChild!;
+      const map = TableMap.get(tableNode);
+
+      // Verify table layout is fullWidth
+      expect(tableNode.attrs.layout).toBe(TableLayout.fullWidth);
+      expect(map.width).toBe(1);
+
+      // Verify colwidth was removed from the single column
+      const cellPos = map.map[0];
+      const cell = tableNode.nodeAt(cellPos);
+      expect(cell?.attrs.colwidth).toBeFalsy();
     });
 
     it("should handle initial state with no oldState", () => {
