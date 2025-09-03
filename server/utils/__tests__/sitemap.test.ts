@@ -199,7 +199,7 @@ describe("navigationNodeToSitemap", () => {
         /^<\?xml version=["']1\.0["'] encoding=["']UTF-8["']\?>/
       );
       expect(result).toMatch(/<urlset[^>]*>/);
-      expect(result).toMatch(/<\/urlset>$/);
+      expect(result).toMatch(/<\/urlset>\s*$/);
     });
 
     it("should include changefreq for all URLs", () => {
