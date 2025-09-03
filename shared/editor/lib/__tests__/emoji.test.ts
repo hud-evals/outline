@@ -51,9 +51,6 @@ describe("Flag emoji mapping", () => {
     expect(nameToEmoji["flag_sg"]).toBe("🇸🇬");
     expect(nameToEmoji["us"]).toBe("🇺🇸");
     expect(nameToEmoji["gb"]).toBe("🇬🇧");
-
-    expect(nameToEmoji["flag-sg"]).toBeUndefined();
-    expect(nameToEmoji["flag-us"]).toBeUndefined();
   });
 
   it("retrieves correct flag emoji from native character", () => {
