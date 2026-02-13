@@ -167,7 +167,7 @@
     "lodash": "^4.17.21",
     "mailparser": "^3.7.4",
     "mammoth": "^1.10.0",
-    "markdown-it": "^14.1.0",
+    "markdown-it": "^14.1.1",
     "markdown-it-container": "^3.0.0",
     "markdown-it-emoji": "^3.0.0",
     "mermaid": "11.10.1",
